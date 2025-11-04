@@ -21,7 +21,6 @@
       <a class="nav-link" href="#">💬 Chat</a>
     </nav>
   </div>
-
   <!-- CONTENIDO PRINCIPAL -->
   <div class="main-content">
     <div class="row mb-4">
@@ -30,7 +29,6 @@
         <span id="envIndicator"></span>
       </div>
     </div>
-
     <div class="page-header">
       <h1>Registrar Ingreso</h1>
       <p class="mb-0">Sistema de ingreso de vehículos al taller - Evite solapamientos</p>
@@ -43,7 +41,6 @@
       <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ en_proceso }}</div><div class="stat-label">En Proceso</div></div></div>
       <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ disponibles }}</div><div class="stat-label">Disponibles</div></div></div>
     </div>
-
     <!-- FORMULARIO -->
     <div class="card form-card mt-4">
       <div class="card-body">
@@ -62,7 +59,7 @@
             <div class="mb-3"><label for="marca" class="form-label">Marca</label><input type="text" class="form-control" id="marca"></div>
             <div class="mb-3"><label for="modelo" class="form-label">Modelo</label><input type="text" class="form-control" id="modelo"></div>
             <div class="mb-3"><label for="anio" class="form-label">Año</label><input type="number" class="form-control" id="anio" min="1900" max="2099"></div>
-            <div class="mb-3"><label for="tipo" class="form-label">Tipo</label><input type="text" class="form-control" id="tipo"></div>
+            <div class="mb-3"><label for="tipo" class="form-label">Tipo Vehículo</label><input type="text" class="form-control" id="tipo"></div>
             <div class="mb-3">
               <label for="ubicacion" class="form-label required-field">Ubicación</label>
               <select class="form-select" id="ubicacion" required>
@@ -73,6 +70,27 @@
               </select>
             </div>
           </div>
+          <!-- Mantenimiento -->
+          <div class="mb-3">
+            <label for="tipoMantenimiento" class="form-label required-field">Tipo Mantenimiento</label>
+            <select class="form-select" id="tipoMantenimiento" required>
+              <option value="">Selecciona tipo</option>
+              <option value="preventivo">Preventivo</option>
+              <option value="correctivo">Correctivo</option>
+            </select>
+          </div>
+
+          <!-- Kilometraje -->
+          <div class="mb-3">
+            <label for="kilometraje" class="form-label required-field">Kilometraje</label>
+            <input type="number" class="form-control" id="kilometraje" min="0" required>
+          </div>
+
+          <!-- Estado -->
+          <div class="mb-3">
+            <label for="descripcion" class="form-label">Estado Vehículo</label>
+            <textarea class="form-control" id="descripcion" rows="4"></textarea>
+          </div>
 
           <!-- RUT Chofer -->
           <div class="mb-3">
@@ -81,16 +99,6 @@
           </div>
 
           <!-- Campos Selección Empleado -->
-          <div class="mb-3">
-            <label for="cargo" class="form-label">Cargo</label>
-            <select class="form-select" id="cargo" name="cargo">
-              <option value="">Seleccione cargo</option>
-              {% for value, label in form.fields.cargo.choices %}
-                <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
           <div class="mb-3">
             <label for="region" class="form-label">Región</label>
             <select class="form-select" id="region" name="region">
@@ -118,28 +126,6 @@
                 <option value="{{ value }}">{{ label }}</option>
               {% endfor %}
             </select>
-          </div>
-
-          <!-- Mantenimiento -->
-          <div class="mb-3">
-            <label for="tipoMantenimiento" class="form-label required-field">Tipo Mantenimiento</label>
-            <select class="form-select" id="tipoMantenimiento" required>
-              <option value="">Selecciona tipo</option>
-              <option value="preventivo">Preventivo</option>
-              <option value="correctivo">Correctivo</option>
-            </select>
-          </div>
-
-          <!-- Kilometraje -->
-          <div class="mb-3">
-            <label for="kilometraje" class="form-label required-field">Kilometraje</label>
-            <input type="number" class="form-control" id="kilometraje" min="0" required>
-          </div>
-
-          <!-- Estado -->
-          <div class="mb-3">
-            <label for="descripcion" class="form-label">Estado Vehículo</label>
-            <textarea class="form-control" id="descripcion" rows="4"></textarea>
           </div>
 
           <div class="d-grid">
