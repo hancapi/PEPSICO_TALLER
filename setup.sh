@@ -19,7 +19,13 @@ pip install -r requirements.txt
 
 # 4. Aplicar migraciones
 echo "🛠️ Aplicando migraciones..."
-python manage.py makemigrations
+python manage.py makemigrations autenticacion
+python manage.py makemigrations vehiculos
+python manage.py makemigrations talleres
+python manage.py makemigrations ordenestrabajo
+python manage.py makemigrations reportes
+python manage.py makemigrations documentos
+python manage.py makemigrations utils
 python manage.py migrate
 
 # 5. Correr el servidor

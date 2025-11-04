@@ -24,7 +24,6 @@ python manage.py makemigrations ordenestrabajo
 python manage.py makemigrations reportes
 python manage.py makemigrations documentos
 python manage.py makemigrations utils
-
 python manage.py migrate
 
 # 5. Levantar servidor
