@@ -1,0 +1,14 @@
+Django==4.2.25
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
+PyMySQL==1.1.2
+sqlparse==0.5.3
+asgiref==3.10.0
+cryptography==46.0.3
+cffi==2.0.0
+pycparser==2.23
+typing_extensions==4.15.0
+six==1.15.0
+altgraph==0.17.2
+future==0.18.2
+macholib==1.15.2

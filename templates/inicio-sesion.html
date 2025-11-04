@@ -1,0 +1,84 @@
+  <!-- inicio-sesion.html -->
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Gestión de Vehículos PepsiCo Chile</title>
+
+  <!-- Bootstrap y FontAwesome -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+  <!-- CSS centralizado -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <!-- Logo -->
+    <div class="logo text-center mb-3">
+      <h2>🚗 Taller PepsiCo</h2>
+      <p class="text-muted">Sistema de Gestión de Vehículos</p>
+    </div>
+
+    <!-- Alertas -->
+    <div class="alert alert-danger" id="errorAlert" role="alert">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span id="errorMessage"></span>
+    </div>
+    <div class="alert alert-success" id="successAlert" role="alert">
+      <i class="fas fa-check-circle"></i>
+      <span id="successMessage"></span>
+    </div>
+
+    <!-- Formulario de login -->
+    <form id="loginForm">
+      <div class="mb-3">
+        <label for="usuario" class="form-label"><i class="fas fa-user"></i> Usuario</label>
+        <input type="text" class="form-control" id="usuario" placeholder="Ingresa tu usuario" maxlength="30"
+          pattern="[a-zA-ZÑñ]+" title="Solo se permiten letras" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="contrasena" class="form-label"><i class="fas fa-lock"></i> Contraseña</label>
+        <input type="password" class="form-control" id="contrasena" placeholder="Ingresa tu contraseña" maxlength="30" required>
+      </div>
+
+      <div class="d-grid mb-3">
+        <button type="submit" class="btn btn-primary" id="loginButton">
+          <span class="spinner-border spinner-border-sm loading-spinner" id="loadingSpinner"></span>
+          <span id="buttonText">🔐 Ingresar al Sistema</span>
+        </button>
+      </div>
+
+      <div class="text-center">
+        <a href="#" class="text-decoration-none text-muted"><small>¿Olvidaste tu contraseña?</small></a>
+      </div>
+
+      <!-- Estado servidor -->
+      <div class="mt-4 p-3 bg-light rounded small">
+        <div class="d-flex justify-content-between mb-2">
+          <strong>Estado del servidor:</strong>
+          <span id="serverStatus" class="badge bg-secondary">Verificando...</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <strong>Base de datos:</strong>
+          <span id="dbStatus" class="badge bg-secondary">Conectando...</span>
+        </div>
+      </div>
+
+      <!-- Indicador de entorno -->
+      <div id="envIndicator"></div>
+
+      <!-- Debug solo local -->
+      <div id="debug" style="display:none;"></div>
+    </form>
+  </div>
+
+  <!-- JS -->
+  <script src="{% static 'js/login.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

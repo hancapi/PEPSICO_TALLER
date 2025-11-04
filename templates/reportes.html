@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - Taller PepsiCo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .sidebar {
+            background-color: #004B93;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            width: 250px;
+        }
+
+        .sidebar .nav-link {
+            color: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: #003366;
+        }
+
+        .sidebar .nav-link.active {
+            background-color: #003366 !important;
+            border-left: 4px solid #FFC72C;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #004B93 0%, #002D62 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filters-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .table-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-pausado {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-proceso {
+            background-color: #cce7ff;
+            color: #004085;
+        }
+
+        .status-terminado {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .file-badge {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .file-badge:hover {
+            background-color: #dde1e6;
+        }
+
+        .export-buttons {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- BARRA LATERAL DE NAVEGACIÓN -->
+    <div class="sidebar">
+        <!-- LOGO Y NOMBRE DE LA EMPRESA -->
+        <div class="p-3 text-center border-bottom">
+            <h5>Taller PepsiCo Chile</h5>
+        </div>
+        <!-- MENÚ DE NAVEGACIÓN -->
+        <nav class="nav flex-column">
+            <a class="nav-link" href="inicio.html">🏠 Inicio</a>
+            <a class="nav-link" href="ingreso-vehiculos.html">🚗 Ingreso Vehículos</a>
+            <a class="nav-link active" href="reportes.html">📊 Reportes</a>
+            <a class="nav-link" href="#">💬 Chat</a>
+        </nav>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-content">
+        <!-- BARRA SUPERIOR CON BOTÓN CERRAR SESIÓN -->
+        <div class="row mb-4">
+            <div class="col-12 text-end">
+                <a href="inicio-sesion.html" class="btn btn-outline-danger">🔒 Cerrar Sesión</a>
+            </div>
+        </div>
+
+        <!-- ENCABEZADO DE LA PÁGINA -->
+        <div class="page-header">
+            <h1>📊 Reportes</h1>
+            <p class="mb-0">Sistema de reportes y análisis de datos del taller</p>
+        </div>
+
+        <!-- SECCIÓN DE FILTROS PARA REPORTES -->
+        <div class="card filters-card">
+            <div class="card-body">
+                <h5 class="card-title mb-4">Filtrar Reportes</h5>
+
+                <div class="row">
+                    <!-- FILTRO POR AÑO -->
+                    <div class="col-md-3 mb-3">
+                        <label for="filtroAnio" class="form-label">Filtrar por Año</label>
+                        <select class="form-select" id="filtroAnio">
+                            <option value="">Todos los años</option>
+                            <option value="2024" selected>2024</option>
+                            <option value="2023">2023</option>
+                            <option value="2022">2022</option>
+                        </select>
+                    </div>
+
+                    <!-- FILTRO POR MES -->
+                    <div class="col-md-3 mb-3">
+                        <label for="filtroMes" class="form-label">Filtrar por Mes</label>
+                        <select class="form-select" id="filtroMes">
+                            <option value="">Todos los meses</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+
+                    <!-- FILTRO POR ENCARGADO -->
+                    <div class="col-md-3 mb-3">
+                        <label for="filtroEncargado" class="form-label">Filtrar por Encargado</label>
+                        <select class="form-select" id="filtroEncargado">
+                            <option value="">Todos los encargados</option>
+                            <option value="Juan Pérez">Juan Pérez</option>
+                            <option value="María González">María González</option>
+                            <option value="Carlos López">Carlos López</option>
+                            <option value="Ana Silva">Ana Silva</option>
+                            <option value="Pedro Rodríguez">Pedro Rodríguez</option>
+                        </select>
+                    </div>
+
+                    <!-- BOTÓN APLICAR FILTROS -->
+                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                            🔍 Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BOTÓN LIMPIAR FILTROS -->
+                <div class="row">
+                    <div class="col-md-9">
+                        <button class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                            🗑️ Limpiar Filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLA PRINCIPAL DE REPORTES -->
+        <div class="card table-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Historial: Ingreso al Taller</h5>
+                <span class="badge bg-primary" id="contadorRegistros">7 registros</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Patente</th>
+                                <th>Fecha</th>
+                                <th>Encargado</th>
+                                <th>Descripción</th>
+                                <th>Estado</th>
+                                <th>Documentos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaReportes"></tbody>
+                    </table>
+                </div>
+
+                <!-- PAGINACIÓN DE REPORTES -->
+                <nav aria-label="Paginación de reportes">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item disabled"><a class="page-link" href="#">Anterior</a></li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE EXPORTACIÓN DE REPORTES -->
+        <div class="export-buttons">
+            <div class="row">
+                <!-- BOTÓN EXPORTAR A EXCEL -->
+                <div class="col-md-6 text-center">
+                    <button class="btn btn-success btn-lg w-100" onclick="exportarArchivo()">
+                        📥 Exportar Archivo
+                    </button>
+                    <small class="text-muted">Descarga los datos en formato Excel</small>
+                </div>
+                <!-- BOTÓN EXPORTAR A PDF -->
+                <div class="col-md-6 text-center">
+                    <button class="btn btn-info btn-lg w-100 text-white" onclick="exportarReporte()">
+                        📄 Exportar Reporte
+                    </button>
+                    <small class="text-muted">Genera reporte en formato PDF</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS JAVASCRIPT -->
+    <script>
+        // BASE DE DATOS SIMULADA PARA REPORTES
+        const datosReportes = [
+            {
+                patente: 'AB123CD',
+                fecha: '15/03/2024',
+                encargado: 'Juan Pérez',
+                descripcion: 'Mantención preventiva programada',
+                estado: 'terminado',
+                documento: 'mantencion_ab123cd.doc'
+            },
+            {
+                patente: 'XY789ZW',
+                fecha: '20/03/2024',
+                encargado: 'María González',
+                descripcion: 'Reparación de sistema de frenos',
+                estado: 'pausado',
+                documento: 'frenos_xy789zw.doc'
+            },
+            {
+                patente: 'EF456GH',
+                fecha: '25/03/2024',
+                encargado: 'Carlos López',
+                descripcion: 'Revisión completa de motor',
+                estado: 'proceso',
+                documento: 'motor_ef456gh.doc'
+            },
+            {
+                patente: 'IJ789KL',
+                fecha: '10/02/2024',
+                encargado: 'Ana Silva',
+                descripcion: 'Cambio de neumáticos',
+                estado: 'terminado',
+                documento: 'neumaticos_ij789kl.doc'
+            },
+            {
+                patente: 'MN123OP',
+                fecha: '05/01/2024',
+                encargado: 'Pedro Rodríguez',
+                descripcion: 'Alineación y balanceo',
+                estado: 'terminado',
+                documento: 'alineacion_mn123op.doc'
+            },
+            {
+                patente: 'QR456ST',
+                fecha: '18/03/2024',
+                encargado: 'Juan Pérez',
+                descripcion: 'Revisión de suspensión',
+                estado: 'proceso',
+                documento: 'suspension_qr456st.doc'
+            },
+            {
+                patente: 'UV789WX',
+                fecha: '22/02/2024',
+                encargado: 'María González',
+                descripcion: 'Cambio de aceite y filtros',
+                estado: 'terminado',
+                documento: 'aceite_uv789wx.doc'
+            }
+        ];
+
+        // INICIALIZAR TABLA AL CARGAR LA PÁGINA
+        document.addEventListener('DOMContentLoaded', function () {
+            llenarTablaReportes(datosReportes);
+        });
+
+        // FUNCIÓN PARA APLICAR FILTROS A LOS REPORTES
+        function aplicarFiltros() {
+            const anio = document.getElementById('filtroAnio').value;
+            const mes = document.getElementById('filtroMes').value;
+            const encargado = document.getElementById('filtroEncargado').value;
+
+            let datosFiltrados = datosReportes;
+
+            // Aplicar filtro por año
+            if (anio) {
+                datosFiltrados = datosFiltrados.filter(item => {
+                    const añoItem = item.fecha.split('/')[2];
+                    return añoItem === anio;
+                });
+            }
+
+            // Aplicar filtro por mes
+            if (mes) {
+                datosFiltrados = datosFiltrados.filter(item => {
+                    const mesItem = item.fecha.split('/')[1];
+                    return mesItem === mes.toString().padStart(2, '0');
+                });
+            }
+
+            // Aplicar filtro por encargado
+            if (encargado) {
+                datosFiltrados = datosFiltrados.filter(item => item.encargado === encargado);
+            }
+
+            // Actualizar tabla con resultados filtrados
+            llenarTablaReportes(datosFiltrados);
+        }
+
+        // FUNCIÓN PARA LIMPIAR FILTROS
+        function limpiarFiltros() {
+            document.getElementById('filtroAnio').value = '';
+            document.getElementById('filtroMes').value = '';
+            document.getElementById('filtroEncargado').value = '';
+            llenarTablaReportes(datosReportes);
+        }
+
+        // FUNCIÓN PARA LLENAR LA TABLA DE REPORTES
+        function llenarTablaReportes(datos) {
+            const tbody = document.getElementById('tablaReportes');
+            const contador = document.getElementById('contadorRegistros');
+
+            tbody.innerHTML = '';
+            contador.textContent = `${datos.length} registros`;
+
+            datos.forEach(item => {
+                const fila = document.createElement('tr');
+
+                let claseEstado = 'status-badge ';
+                if (item.estado === 'pausado') claseEstado += 'status-pausado';
+                else if (item.estado === 'proceso') claseEstado += 'status-proceso';
+                else claseEstado += 'status-terminado';
+
+                let textoEstado = item.estado === 'pausado' ? 'Pausado' :
+                    item.estado === 'proceso' ? 'En Proceso' : 'Terminado';
+
+                fila.innerHTML = `
+                    <td><strong>${item.patente}</strong></td>
+                    <td>${item.fecha}</td>
+                    <td>${item.encargado}</td>
+                    <td>${item.descripcion}</td>
+                    <td><span class="${claseEstado}">${textoEstado}</span></td>
+                    <td>
+                        <span class="file-badge" onclick="descargarDocumento('${item.documento}')">
+                            📄 ${item.documento}
+                        </span>
+                    </td>
+                `;
+
+                tbody.appendChild(fila);
+            });
+        }
+
+        // FUNCIÓN PARA DESCARGAR DOCUMENTO
+        function descargarDocumento(nombreArchivo) {
+            alert(`Descargando archivo: ${nombreArchivo}`);
+            // En una aplicación real, aquí iría la lógica de descarga
+        }
+
+        // FUNCIÓN PARA EXPORTAR A EXCEL
+        function exportarArchivo() {
+            alert('Exportando datos a Excel...');
+            // En una aplicación real, aquí iría la lógica de exportación a Excel
+        }
+
+        // FUNCIÓN PARA EXPORTAR A PDF
+        function exportarReporte() {
+            alert('Generando reporte PDF...');
+            // En una aplicación real, aquí iría la lógica de generación de PDF
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

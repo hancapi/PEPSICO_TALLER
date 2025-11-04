@@ -1,0 +1,260 @@
+/* js/style.css
+  ===========================
+   ESTILO GENERAL BODY
+   =========================== */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  margin: 0;
+  padding: 0;
+}
+
+/* ===========================
+   LOGIN-SESION
+   =========================== */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #004b93 0%, #002d62 100%);
+}
+
+.login-container {
+  background: white;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
+}
+
+.loading-spinner {
+  display: none;
+}
+
+.alert {
+  display: none;
+}
+
+.logo h2 {
+  color: #004b93;
+  font-weight: bold;
+}
+
+.form-control:focus {
+  border-color: #004b93;
+  box-shadow: 0 0 0 0.2rem rgba(0, 75, 147, 0.25);
+}
+
+.btn-primary {
+  background-color: #004b93;
+  border-color: #004b93;
+}
+
+.btn-primary:hover {
+  background-color: #003366;
+  border-color: #003366;
+}
+
+#envIndicator {
+  text-align: center;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  color: #666;
+}
+
+/* ===========================
+   SIDEBAR / DASHBOARD
+   =========================== */
+.sidebar {
+  background-color: #004B93;
+  color: white;
+  height: 100vh;
+  position: fixed;
+  width: 250px;
+}
+
+.sidebar .nav-link {
+  color: white;
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.3s;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #003366;
+}
+
+.sidebar .nav-link.active {
+  background-color: #003366 !important;
+  border-left: 4px solid #FFC72C;
+}
+
+/* ===========================
+   CONTENIDO PRINCIPAL
+   =========================== */
+.main-content {
+  margin-left: 250px;
+  padding: 20px;
+}
+
+/* ===========================
+   WELCOME CARD
+   =========================== */
+.welcome-card {
+  background: linear-gradient(135deg, #004B93 0%, #002D62 100%);
+  color: white;
+  border-radius: 10px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* ===========================
+   FEATURE CARDS
+   =========================== */
+.feature-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: transform 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+/* ===========================
+   STATS CARDS
+   =========================== */
+.stats-card {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #004B93;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* ===========================
+   INFO EMPLEADO CARD
+   =========================== */
+.info-empleado-card {
+  border-left: 4px solid #004B93;
+}
+
+/* ===========================
+   BADGES / ESTADOS
+   =========================== */
+.badge-disponible {
+  background-color: #28a745;
+}
+
+.badge-ocupado {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.badge-ausente {
+  background-color: #dc3545;
+}
+
+.badge-desconocido {
+  background-color: #6c757d;
+}
+
+/* ===========================
+   DEBUG / ENTORNO
+   =========================== */
+#envIndicator {
+  font-size: 0.8rem;
+  color: #666;
+  margin-left: 10px;
+}
+
+#debug {
+  font-size: 0.8rem;
+  color: #444;
+  margin-top: 10px;
+  background: #f1f1f1;
+  padding: 5px;
+  border-radius: 5px;
+}
+
+/* ===========================
+   CALENDARIO DE INGRESO
+   =========================== */
+.calendar-container {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  margin-bottom: 2rem;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.calendar-day {
+  background-color: #f1f3f5;
+  border: 1px solid #dee2e6;
+  padding: 10px;
+  text-align: center;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.calendar-day:hover {
+  background-color: #e2e6ea;
+}
+
+.calendar-day.ocupado {
+  background-color: #f8d7da;
+  color: #721c24;
+  cursor: not-allowed;
+}
+
+.calendar-day.empty {
+  visibility: hidden;
+}
+
+.time-slots {
+  margin-top: 20px;
+}
+
+.time-slots .btn {
+  min-width: 80px;
+}
+
+.schedule-summary {
+  margin-top: 20px;
+  background-color: #e9ecef;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-weight: 500;
+}
