@@ -1,6 +1,4 @@
-#!/bin/bash
-
-echo "🚀 Iniciando entorno de desarrollo PepsiCo Taller..."
+﻿echo "🚀 Iniciando entorno de desarrollo PepsiCo Taller..."
 
 # 1. Crear entorno virtual si no existe
 if [ ! -d "env" ]; then

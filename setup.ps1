@@ -1,4 +1,4 @@
-Write-Host "🚀 Iniciando entorno de desarrollo PepsiCo Taller..."
+﻿Write-Host "🚀 Iniciando entorno de desarrollo PepsiCo Taller..."
 
 # 1. Crear entorno virtual si no existe
 if (-Not (Test-Path "env")) {
