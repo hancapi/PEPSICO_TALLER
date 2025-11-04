@@ -1,0 +1,157 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ingreso Vehículos - Taller PepsiCo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+  <!-- BARRA LATERAL -->
+  <div class="sidebar">
+    <div class="p-3 text-center border-bottom">
+      <h5>🚗 Taller PepsiCo Chile</h5>
+    </div>
+    <nav class="nav flex-column">
+      <a class="nav-link" href="{% url 'inicio' %}">🏠 Inicio</a>
+      <a class="nav-link active" href="{% url 'vehiculos:ingreso_vehiculos' %}">🚗 Ingreso Vehículos</a>
+      <a class="nav-link" href="{% url 'reportes:reportes' %}">📊 Reportes</a>
+      <a class="nav-link" href="#">💬 Chat</a>
+    </nav>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="main-content">
+    <div class="row mb-4">
+      <div class="col-12 text-end">
+        <button class="btn btn-outline-danger" id="logoutButton">🔒 Cerrar Sesión</button>
+        <span id="envIndicator"></span>
+      </div>
+    </div>
+
+    <div class="page-header">
+      <h1>Registrar Ingreso</h1>
+      <p class="mb-0">Sistema de ingreso de vehículos al taller - Evite solapamientos</p>
+    </div>
+
+    <!-- ESTADÍSTICAS -->
+    <div class="row mb-4">
+      <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ total_vehiculos }}</div><div class="stat-label">Vehículos Totales</div></div></div>
+      <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ en_taller }}</div><div class="stat-label">En Taller</div></div></div>
+      <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ en_proceso }}</div><div class="stat-label">En Proceso</div></div></div>
+      <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ disponibles }}</div><div class="stat-label">Disponibles</div></div></div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="card form-card mt-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3 required-field">Datos del Vehículo</h5>
+        <form id="ingresoForm">
+          <!-- Patente -->
+          <div class="mb-3">
+            <label for="patente" class="form-label required-field">Patente Vehículo</label>
+            <input type="text" class="form-control" id="patente" maxlength="8" required>
+          </div>
+
+          <!-- Datos del Vehículo -->
+          <div id="datosVehiculoNuevo" style="display: none;">
+            <hr>
+            <h6>Datos del Vehículo Nuevo</h6>
+            <div class="mb-3"><label for="marca" class="form-label">Marca</label><input type="text" class="form-control" id="marca"></div>
+            <div class="mb-3"><label for="modelo" class="form-label">Modelo</label><input type="text" class="form-control" id="modelo"></div>
+            <div class="mb-3"><label for="anio" class="form-label">Año</label><input type="number" class="form-control" id="anio" min="1900" max="2099"></div>
+            <div class="mb-3"><label for="tipo" class="form-label">Tipo</label><input type="text" class="form-control" id="tipo"></div>
+            <div class="mb-3">
+              <label for="ubicacion" class="form-label required-field">Ubicación</label>
+              <select class="form-select" id="ubicacion" required>
+                <option value="">Seleccione un taller</option>
+                {% for taller in talleres %}
+                  <option value="{{ taller.id }}">{{ taller.nombre }} - {{ taller.ubicacion }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- RUT Chofer -->
+          <div class="mb-3">
+            <label for="rut" class="form-label required-field">RUT Chofer</label>
+            <input type="text" class="form-control" id="rut" maxlength="12" required>
+          </div>
+
+          <!-- Campos Selección Empleado -->
+          <div class="mb-3">
+            <label for="cargo" class="form-label">Cargo</label>
+            <select class="form-select" id="cargo" name="cargo">
+              <option value="">Seleccione cargo</option>
+              {% for value, label in form.fields.cargo.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="region" class="form-label">Región</label>
+            <select class="form-select" id="region" name="region">
+              <option value="">Seleccione región</option>
+              {% for value, label in form.fields.region.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="horario" class="form-label">Horario</label>
+            <select class="form-select" id="horario" name="horario">
+              <option value="">Seleccione horario</option>
+              {% for value, label in form.fields.horario.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="disponibilidad" class="form-label">Disponibilidad</label>
+            <select class="form-select" id="disponibilidad" name="disponibilidad">
+              {% for value, label in form.fields.disponibilidad.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Mantenimiento -->
+          <div class="mb-3">
+            <label for="tipoMantenimiento" class="form-label required-field">Tipo Mantenimiento</label>
+            <select class="form-select" id="tipoMantenimiento" required>
+              <option value="">Selecciona tipo</option>
+              <option value="preventivo">Preventivo</option>
+              <option value="correctivo">Correctivo</option>
+            </select>
+          </div>
+
+          <!-- Kilometraje -->
+          <div class="mb-3">
+            <label for="kilometraje" class="form-label required-field">Kilometraje</label>
+            <input type="number" class="form-control" id="kilometraje" min="0" required>
+          </div>
+
+          <!-- Estado -->
+          <div class="mb-3">
+            <label for="descripcion" class="form-label">Estado Vehículo</label>
+            <textarea class="form-control" id="descripcion" rows="4"></textarea>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">Agendar Ingreso</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/ingreso_vehiculos.js' %}"></script>
+  <script src="{% static 'js/auth.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

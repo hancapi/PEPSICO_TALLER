@@ -1,0 +1,22 @@
+# Archivos de macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icono de carpeta (innecesario)
+Icon
+
+# Archivos de metadatos de red
+._*
+
+# Archivos temporales
+*.swp
+*.tmp
+
+# Archivos de papelera y caché
+.Trashes
+.Spotlight-V100
+.fseventsd
+
+# Archivos de Time Machine
+.TemporaryItems
