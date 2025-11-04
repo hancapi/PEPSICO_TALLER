@@ -30,3 +30,6 @@ __pycache__/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Entornos virtuales
+env/
