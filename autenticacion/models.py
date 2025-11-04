@@ -2,6 +2,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
+
 class EmpleadoManager(BaseUserManager):
     def create_user(self, usuario, password=None, **extra_fields):
         if not usuario:
@@ -15,19 +16,37 @@ class EmpleadoManager(BaseUserManager):
     def create_superuser(self, usuario, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('taller_id', 1)
+        extra_fields.setdefault('rut', '00000000-0')
+        extra_fields.setdefault('nombre', 'Administrador')
+        extra_fields.setdefault('cargo', 'ADMIN')
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError("El superusuario debe tener is_staff=True.")
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError("El superusuario debe tener is_superuser=True.")
+
         return self.create_user(usuario, password, **extra_fields)
 
 
 class Empleado(AbstractBaseUser, PermissionsMixin):
+    # Opciones de roles/cargos
+    CARGO_CHOICES = [
+        ('CHOFER', 'Chofer'),
+        ('SUPERVISOR', 'Supervisor'),
+        ('MECANICO', 'Mecánico/Administrativo'),
+        ('ADMIN', 'Administrador'),
+    ]
+
     rut = models.CharField(primary_key=True, max_length=12)
     nombre = models.CharField(max_length=100)
-    cargo = models.CharField(max_length=50)
+    cargo = models.CharField(max_length=20, choices=CARGO_CHOICES, default='CHOFER')
     region = models.CharField(max_length=50, null=True, blank=True)
     horario = models.CharField(max_length=100, null=True, blank=True)
     disponibilidad = models.PositiveSmallIntegerField(default=1)
     usuario = models.CharField(max_length=45, unique=True)
 
-    # 🧩 Valor por defecto seguro para taller_id
+    # Valor por defecto seguro para taller_id
     taller = models.ForeignKey(
         'talleres.Taller',
         db_column='taller_id',
@@ -55,7 +74,7 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         Aplica valores por defecto y limpieza antes de guardar.
         Esto asegura consistencia aunque la tabla sea managed=False.
         """
-        # --- Defaults seguros ---
+        # Defaults seguros
         if not self.taller_id:
             self.taller_id = 1
         if self.disponibilidad is None:
@@ -65,9 +84,8 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         if not self.horario:
             self.horario = "No especificado"
 
-        # --- Limpieza de datos ---
+        # Limpieza de datos
         self.nombre = self.nombre.strip().title()
-        self.cargo = self.cargo.strip().capitalize()
         self.usuario = self.usuario.strip()
         self.rut = self.rut.strip()
 
