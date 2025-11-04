@@ -20,3 +20,13 @@ Icon
 
 # Archivos de Time Machine
 .TemporaryItems
+
+# Archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de sistema Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
