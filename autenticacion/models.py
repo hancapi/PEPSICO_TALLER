@@ -23,6 +23,9 @@ class EmpleadoManager(BaseUserManager):
         extra_fields.setdefault('region', 'RM')
         extra_fields.setdefault('horario', 'ADMIN')
         extra_fields.setdefault('disponibilidad', True)
+        extra_fields.setdefault('region', 'RM')  # Valor por defecto para superuser
+        extra_fields.setdefault('horario', 'ADMIN')  # Valor por defecto para superuser
+        extra_fields.setdefault('disponibilidad', True)  # Superuser siempre disponible
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError("El superusuario debe tener is_staff=True.")
@@ -41,7 +44,7 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         ('ADMIN', 'Administrador'),
     ]
     
-    # Opciones de regiones chilenas CORREGIDAS
+    # Opciones de regiones chilenas
     REGION_CHOICES = [
         ('AR', 'Arica y Parinacota'),
         ('TA', 'Tarapacá'),
@@ -55,6 +58,7 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         ('NB', 'Ñuble'),
         ('BI', 'Biobío'),
         ('AU', 'Araucanía'),  # ✅ Corregido: cambiado de 'AR' a 'AU'
+        ('AR', 'Araucanía'),
         ('LR', 'Los Ríos'),
         ('LL', 'Los Lagos'),
         ('AI', 'Aysén'),
@@ -73,10 +77,19 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
 
     rut = models.CharField(primary_key=True, max_length=12)
     nombre = models.CharField(max_length=100)
+
     cargo = models.CharField(max_length=20, choices=CARGO_CHOICES, default='CHOFER')
     region = models.CharField(max_length=50, choices=REGION_CHOICES, default='RM', null=True, blank=True)
     horario = models.CharField(max_length=100, choices=HORARIO_CHOICES, default='DIURNO', null=True, blank=True)
     disponibilidad = models.BooleanField(default=True, verbose_name='Disponible')
+    cargo = models.CharField(max_length=20, choices=CARGO_CHOICES)
+    region = models.CharField(max_length=50, choices=REGION_CHOICES, default='RM')
+    horario = models.CharField(max_length=100, choices=HORARIO_CHOICES, default='DIURNO')
+    
+    # Campo disponibilidad mejorado - usando BooleanField
+    disponibilidad = models.BooleanField(default=True, verbose_name='Disponible')
+    
+
     usuario = models.CharField(max_length=45, unique=True)
 
     taller = models.ForeignKey(
@@ -111,6 +124,8 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         if not self.taller_id:
             self.taller_id = 1
             
+        
+        # Disponibilidad por defecto es True (disponible)
         if self.disponibilidad is None:
             self.disponibilidad = True
             
@@ -140,3 +155,5 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         if self.last_login:
             return self.last_login.strftime("%d/%m/%Y %H:%M")
         return "Nunca"
+
+        return "Disponible" if self.disponibilidad else "No disponible"
