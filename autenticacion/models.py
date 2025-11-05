@@ -20,6 +20,9 @@ class EmpleadoManager(BaseUserManager):
         extra_fields.setdefault('rut', '00000000-0')
         extra_fields.setdefault('nombre', 'Administrador')
         extra_fields.setdefault('cargo', 'ADMIN')
+        extra_fields.setdefault('region', 'RM')  # Valor por defecto para superuser
+        extra_fields.setdefault('horario', 'ADMIN')  # Valor por defecto para superuser
+        extra_fields.setdefault('disponibilidad', True)  # Superuser siempre disponible
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError("El superusuario debe tener is_staff=True.")
@@ -37,13 +40,46 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         ('MECANICO', 'Mecánico/Administrativo'),
         ('ADMIN', 'Administrador'),
     ]
+    
+    # Opciones de regiones chilenas
+    REGION_CHOICES = [
+        ('AR', 'Arica y Parinacota'),
+        ('TA', 'Tarapacá'),
+        ('AN', 'Antofagasta'),
+        ('AT', 'Atacama'),
+        ('CO', 'Coquimbo'),
+        ('VA', 'Valparaíso'),
+        ('RM', 'Metropolitana'),
+        ('LI', 'Libertador Bernardo O\'Higgins'),
+        ('MA', 'Maule'),
+        ('NB', 'Ñuble'),
+        ('BI', 'Biobío'),
+        ('AR', 'Araucanía'),
+        ('LR', 'Los Ríos'),
+        ('LL', 'Los Lagos'),
+        ('AI', 'Aysén'),
+        ('MG', 'Magallanes'),
+    ]
+    
+    # Opciones de horarios
+    HORARIO_CHOICES = [
+        ('DIURNO', 'Diurno (08:00 - 17:00)'),
+        ('VESPERTINO', 'Vespertino (14:00 - 23:00)'),
+        ('NOCTURNO', 'Nocturno (22:00 - 07:00)'),
+        ('MIXTO', 'Mixto'),
+        ('ADMIN', 'Administrativo (09:00 - 18:00)'),
+        ('TURNO', 'Por turnos'),
+    ]
 
     rut = models.CharField(primary_key=True, max_length=12)
     nombre = models.CharField(max_length=100)
-    cargo = models.CharField(max_length=20, choices=CARGO_CHOICES, default='CHOFER')
-    region = models.CharField(max_length=50, null=True, blank=True)
-    horario = models.CharField(max_length=100, null=True, blank=True)
-    disponibilidad = models.PositiveSmallIntegerField(default=1)
+    cargo = models.CharField(max_length=20, choices=CARGO_CHOICES)
+    region = models.CharField(max_length=50, choices=REGION_CHOICES, default='RM')
+    horario = models.CharField(max_length=100, choices=HORARIO_CHOICES, default='DIURNO')
+    
+    # Campo disponibilidad mejorado - usando BooleanField
+    disponibilidad = models.BooleanField(default=True, verbose_name='Disponible')
+    
     usuario = models.CharField(max_length=45, unique=True)
 
     # Valor por defecto seguro para taller_id
@@ -77,12 +113,15 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
         # Defaults seguros
         if not self.taller_id:
             self.taller_id = 1
+        
+        # Disponibilidad por defecto es True (disponible)
         if self.disponibilidad is None:
-            self.disponibilidad = 1
+            self.disponibilidad = True
+            
         if not self.region:
-            self.region = "Sin asignar"
+            self.region = "RM"
         if not self.horario:
-            self.horario = "No especificado"
+            self.horario = "DIURNO"
 
         # Limpieza de datos
         self.nombre = self.nombre.strip().title()
@@ -93,3 +132,8 @@ class Empleado(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.nombre} ({self.usuario})"
+
+    @property
+    def estado_disponibilidad(self):
+        """Propiedad para obtener el estado como texto"""
+        return "Disponible" if self.disponibilidad else "No disponible"
