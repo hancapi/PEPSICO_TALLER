@@ -1,5 +1,4 @@
-#autentication/admin.py
-
+# autenticacion/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import Empleado
@@ -10,6 +9,9 @@ class EmpleadoAdmin(UserAdmin):
     list_display = ('rut', 'usuario', 'nombre', 'cargo', 'region', 'is_active', 'is_staff')
     search_fields = ('rut', 'usuario', 'nombre')
     ordering = ('rut',)
+    
+    # ✅ SOLUCIÓN: Agregar esta línea
+    readonly_fields = ('last_login',)
 
     fieldsets = (
         (None, {'fields': ('rut', 'usuario', 'password')}),
@@ -24,4 +26,3 @@ class EmpleadoAdmin(UserAdmin):
             'fields': ('rut', 'usuario', 'password1', 'password2', 'nombre', 'cargo', 'region', 'taller', 'is_active', 'is_staff', 'is_superuser'),
         }),
     )
-
