@@ -8,6 +8,7 @@ urlpatterns = [
     path('login/', views.login_api, name='login_api'),
     path('logout/', views.logout_api, name='logout_api'),
     path('dashboard-stats/', views.dashboard_stats_api, name='dashboard_stats_api'),
-    path('registrar/', views.registrar_chofer_api, name='registrar_chofer_api'),
-    path('existe/', views.rut_existe_api, name='rut_existe_api'),
+    path('existe/', views.existe_chofer, name='existe_chofer'),
+    path('registrar/', views.registrar_chofer, name='registrar_chofer'),
+
 ]

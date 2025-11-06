@@ -44,13 +44,31 @@ def ingreso_api(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            form = VehiculoForm(data)
+
+            # Convertir taller_id a objeto Taller
+            taller_id = data.get('ubicacion')
+            try:
+                taller_obj = Taller.objects.get(taller_id=taller_id)
+            except Taller.DoesNotExist:
+                return JsonResponse({"status": "error", "message": "Taller no encontrado"}, status=400)
+
+            vehiculo_data = {
+                'patente': data.get('patente'),
+                'marca': data.get('marca'),
+                'modelo': data.get('modelo'),
+                'anio': data.get('anio'),
+                'tipo': data.get('tipo_vehiculo'),
+                'estado': 'Disponible',
+                'ubicacion': taller_obj  # ← objeto, no string
+            }
+
+            form = VehiculoForm(vehiculo_data)
             if form.is_valid():
                 vehiculo = form.save()
                 return JsonResponse({
                     "status": "ok",
                     "message": "Vehículo ingresado correctamente",
-                    "vehiculo_id": vehiculo.id
+                    "vehiculo_id": vehiculo.patente
                 })
             else:
                 return JsonResponse({
@@ -60,6 +78,7 @@ def ingreso_api(request):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
     return JsonResponse({"status": "error", "message": "Método no permitido"}, status=405)
+
 
 
 def existe_vehiculo(request):

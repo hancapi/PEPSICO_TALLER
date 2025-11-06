@@ -132,83 +132,35 @@ def dashboard_stats_api(request):
 # REGISTRAR CHOFER
 # ===========================
 @csrf_exempt
-def registrar_chofer_api(request):
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
+def registrar_chofer(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            if Empleado.objects.filter(rut=data.get('rut')).exists():
+                return JsonResponse({"success": False, "message": "El RUT ya está registrado."})
 
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        logger.error("Error: JSON inválido en registrar_chofer_api")
-        return JsonResponse({'success': False, 'message': 'JSON inválido'}, status=400)
-
-    # --- Campos obligatorios ---
-    rut = (data.get('rut') or '').strip()
-    nombre = (data.get('nombre') or '').strip()
-    cargo = (data.get('cargo') or 'Chofer').strip()
-    usuario = (data.get('usuario') or '').strip()
-    password = (data.get('password') or '').strip()
-
-    if not all([rut, nombre, usuario, password]):
-        logger.warning("Intento de registro con campos obligatorios faltantes")
-        return JsonResponse({'success': False, 'message': 'Faltan campos obligatorios (rut, nombre, usuario, password)'}, status=400)
-
-    # --- Validaciones de duplicado ---
-    if Empleado.objects.filter(rut=rut).exists():
-        logger.warning(f"Intento de registro duplicado para RUT: {rut}")
-        return JsonResponse({'success': False, 'message': 'El RUT ya está registrado'}, status=400)
-    if Empleado.objects.filter(usuario=usuario).exists():
-        logger.warning(f"Intento de registro duplicado para usuario: {usuario}")
-        return JsonResponse({'success': False, 'message': 'El nombre de usuario ya existe'}, status=400)
-
-    # --- Campos opcionales ---
-    region = (data.get('region') or '').strip() or None
-    horario = (data.get('horario') or '').strip() or None
-    disponibilidad = 1  # Valor por defecto seguro
-
-    # --- Taller por defecto (si no viene) ---
-    taller_id = data.get('taller_id')
-    try:
-        taller = Taller.objects.get(pk=taller_id) if taller_id else Taller.objects.get(pk=1)
-    except Taller.DoesNotExist:
-        logger.error(f"Taller no encontrado (id={taller_id}) en registrar_chofer_api")
-        return JsonResponse({'success': False, 'message': 'El taller especificado no existe'}, status=400)
-
-    try:
-        # --- Creación transaccional y segura ---
-        from django.db import transaction
-        with transaction.atomic():
-            empleado = Empleado.objects.create_user(
-                usuario=usuario,
-                password=password,
-                rut=rut,
-                nombre=nombre,
-                cargo=cargo,
-                region=region,
-                horario=horario,
-                disponibilidad=disponibilidad,
-                taller=taller
+            Empleado.objects.create(
+                rut=data.get('rut'),
+                nombre=data.get('nombre'),
+                cargo=data.get('cargo'),
+                region=data.get('region'),
+                horario=data.get('horario'),
+                usuario=data.get('usuario'),
+                password=data.get('password'),
+                disponibilidad=data.get('disponibilidad'),
+                taller_id=data.get('taller_id')
             )
 
-        logger.info(f"Chofer registrado exitosamente: {empleado.usuario}")
-        return JsonResponse({'success': True, 'message': 'Chofer registrado correctamente'}, status=201)
-
-    except Exception as e:
-        logger.error(f"Error inesperado en registrar_chofer_api: {str(e)}")
-        return JsonResponse({'success': False, 'message': f'Error al registrar chofer: {str(e)}'}, status=400)
-
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "message": str(e)}, status=400)
+    return JsonResponse({"success": False, "message": "Método no permitido"}, status=405)
 
 # ===========================
 # VERIFICAR RUT EXISTE
 # ===========================
-def rut_existe_api(request):
-    try:
-        rut = request.GET.get('rut')
-        if not rut:
-            return JsonResponse({'existe': False})
-        existe = Empleado.objects.filter(rut=rut).exists()
-        logger.info(f"Verificación de RUT ({rut}): {'existe' if existe else 'no existe'}")
-        return JsonResponse({'existe': existe})
-    except Exception as e:
-        logger.error(f"Error en rut_existe_api: {str(e)}")
-        return JsonResponse({'error': f'Error al verificar RUT: {str(e)}'}, status=500)
+def existe_chofer(request):
+    rut = request.GET.get('rut')
+    existe = Empleado.objects.filter(rut=rut).exists()
+    return JsonResponse({'existe': existe})
+

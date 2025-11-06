@@ -70,9 +70,10 @@
               <select class="form-select" id="ubicacion" required>
                 <option value="">Seleccione un taller</option>
                 {% for taller in talleres %}
-                  <option value="{{ taller.id }}">{{ taller.nombre }} - {{ taller.ubicacion }}</option>
+                  <option value="{{ taller.taller_id }}">{{ taller.nombre }} - {{ taller.ubicacion }}</option>
                 {% endfor %}
               </select>
+
             </div>
           </div>
 
