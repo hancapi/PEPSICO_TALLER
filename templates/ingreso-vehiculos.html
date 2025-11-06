@@ -41,6 +41,11 @@
       <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ en_proceso }}</div><div class="stat-label">En Proceso</div></div></div>
       <div class="col-md-3"><div class="stats-card"><div class="stat-number">{{ disponibles }}</div><div class="stat-label">Disponibles</div></div></div>
     </div>
+
+    <!-- ALERTAS -->
+    <div id="successAlert" class="alert alert-success d-none" role="alert"></div>
+    <div id="errorAlert" class="alert alert-danger d-none" role="alert"></div>
+
     <!-- FORMULARIO -->
     <div class="card form-card mt-4">
       <div class="card-body">
@@ -52,7 +57,7 @@
             <input type="text" class="form-control" id="patente" maxlength="8" required>
           </div>
 
-          <!-- Datos del Vehículo -->
+          <!-- Datos del Vehículo (NUEVO) -->
           <div id="datosVehiculoNuevo" style="display: none;">
             <hr>
             <h6>Datos del Vehículo Nuevo</h6>
@@ -70,6 +75,7 @@
               </select>
             </div>
           </div>
+
           <!-- Mantenimiento -->
           <div class="mb-3">
             <label for="tipoMantenimiento" class="form-label required-field">Tipo Mantenimiento</label>
@@ -98,34 +104,89 @@
             <input type="text" class="form-control" id="rut" maxlength="12" required>
           </div>
 
-          <!-- Campos Selección Empleado -->
-          <div class="mb-3">
-            <label for="region" class="form-label">Región</label>
-            <select class="form-select" id="region" name="region">
-              <option value="">Seleccione región</option>
-              {% for value, label in form.fields.region.choices %}
-                <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
+          <!-- Datos del Chofer (NUEVO) - Se muestra cuando el RUT no existe -->
+          <div id="datosChoferNuevo" style="display: none;">
+            <hr>
+            <h6>Datos del Chofer Nuevo</h6>
+            
+            <!-- RUT (oculto, ya viene del campo principal) -->
+            <input type="hidden" id="rutChoferNuevo">
+            
+            <div class="mb-3">
+              <label for="nombreChofer" class="form-label required-field">Nombre Completo</label>
+              <input type="text" class="form-control" id="nombreChofer">
+            </div>
+
+            <!-- CARGO FIJO COMO CHOFER -->
+            <div class="mb-3">
+              <label for="cargoChofer" class="form-label">Cargo</label>
+              <input type="text" class="form-control" id="cargoChofer" value="CHOFER" readonly style="background-color: #f8f9fa;">
+              <small class="text-muted">Cargo predefinido como Chofer</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="regionChofer" class="form-label">Región</label>
+              <select class="form-select" id="regionChofer">
+                <option value="">Seleccione región</option>
+                {% for value, label in form.fields.region.choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="horarioChofer" class="form-label">Horario</label>
+              <select class="form-select" id="horarioChofer">
+                <option value="">Seleccione horario</option>
+                {% for value, label in form.fields.horario.choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="disponibleChofer" checked>
+                <label class="form-check-label" for="disponibleChofer">
+                  Disponible
+                </label>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="usuarioChofer" class="form-label required-field">Usuario</label>
+              <input type="text" class="form-control" id="usuarioChofer">
+            </div>
+
+            <div class="mb-3">
+              <label for="passwordChofer" class="form-label required-field">Contraseña</label>
+              <input type="password" class="form-control" id="passwordChofer" placeholder="Mínimo 6 caracteres">
+            </div>
+
+            <button type="button" id="registrarChoferBtn" class="btn btn-success mb-3">
+              Registrar Nuevo Chofer
+            </button>
           </div>
 
-          <div class="mb-3">
-            <label for="horario" class="form-label">Horario</label>
-            <select class="form-select" id="horario" name="horario">
-              <option value="">Seleccione horario</option>
-              {% for value, label in form.fields.horario.choices %}
-                <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label for="disponibilidad" class="form-label">Disponibilidad</label>
-            <select class="form-select" id="disponibilidad" name="disponibilidad">
-              {% for value, label in form.fields.disponibilidad.choices %}
-                <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
+          <!-- Calendario y Horarios -->
+          <div class="mb-4">
+            <label class="form-label required-field">Seleccione Fecha y Hora</label>
+            <div class="card">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <button class="btn btn-outline-secondary" onclick="previousMonth()">‹</button>
+                  <h5 id="currentMonth" class="mb-0"></h5>
+                  <button class="btn btn-outline-secondary" onclick="nextMonth()">›</button>
+                </div>
+                <div id="calendar" class="calendar-grid mb-3"></div>
+                <div id="timeSlots" class="time-slots"></div>
+                <div id="scheduleSummary" class="alert alert-info mt-3" style="display: none;">
+                  <strong>Horario seleccionado:</strong> <span id="selectedSchedule"></span>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="fechaSeleccionada">
+            <input type="hidden" id="horaSeleccionada">
           </div>
 
           <div class="d-grid">

@@ -1,4 +1,4 @@
-// auth.js - Protección universal para todas las páginas excepto login
+// static/js/auth.js - Protección universal para todas las páginas excepto login
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ auth.js cargado correctamente");
