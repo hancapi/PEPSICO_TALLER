@@ -3,6 +3,11 @@ from vehiculos.models import Vehiculo
 from autenticacion.models import Empleado
 from talleres.models import Taller  # si tienes app talleres
 
+from django.db import models
+from vehiculos.models import Vehiculo
+from talleres.models import Taller
+from autenticacion.models import Empleado  # modelo que usa rut como PK
+
 class OrdenTrabajo(models.Model):
     ot_id = models.AutoField(primary_key=True)
     fecha_ingreso = models.DateField()
@@ -11,23 +16,13 @@ class OrdenTrabajo(models.Model):
     descripcion = models.CharField(max_length=255, null=True, blank=True)
     estado = models.CharField(max_length=50, default='Pendiente')
 
-    patente = models.ForeignKey(
-        Vehiculo,
-        db_column='patente',
-        on_delete=models.DO_NOTHING
-    )
-
-    taller = models.ForeignKey(
-        Taller,
-        db_column='taller_id',
-        on_delete=models.DO_NOTHING
-    )
-
-    rut = models.CharField(max_length=12)  # FK a empleados.rut (no es PK único, por eso no se usa ForeignKey directa)
+    patente = models.ForeignKey(Vehiculo, db_column='patente', on_delete=models.CASCADE)
+    taller = models.ForeignKey(Taller, db_column='taller_id', on_delete=models.CASCADE)
+    rut = models.ForeignKey(Empleado, db_column='rut', on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'ordenestrabajo'
-        managed = False  # 🚨 No dejar que Django altere esta tabla
+        managed = False  # ⚠️ importante, ya que la tabla ya existe en MySQL
 
 
 class Repuesto(models.Model):

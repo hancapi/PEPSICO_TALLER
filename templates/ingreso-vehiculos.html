@@ -21,6 +21,7 @@
       <a class="nav-link" href="#">💬 Chat</a>
     </nav>
   </div>
+
   <!-- CONTENIDO PRINCIPAL -->
   <div class="main-content">
     <div class="row mb-4">
@@ -29,6 +30,7 @@
         <span id="envIndicator"></span>
       </div>
     </div>
+
     <div class="page-header">
       <h1>Registrar Ingreso</h1>
       <p class="mb-0">Sistema de ingreso de vehículos al taller - Evite solapamientos</p>
@@ -51,33 +53,46 @@
       <div class="card-body">
         <h5 class="card-title mb-3 required-field">Datos del Vehículo</h5>
         <form id="ingresoForm">
+          
           <!-- Patente -->
           <div class="mb-3">
             <label for="patente" class="form-label required-field">Patente Vehículo</label>
             <input type="text" class="form-control" id="patente" maxlength="8" required>
           </div>
 
-          <!-- Datos del Vehículo (NUEVO) -->
-          <div id="datosVehiculoNuevo" style="display: none;">
+          <!-- 🔹 Datos del Vehículo (NUEVO) -->
+          <div id="formNuevoVehiculo" class="d-none">
             <hr>
             <h6>Datos del Vehículo Nuevo</h6>
-            <div class="mb-3"><label for="marca" class="form-label">Marca</label><input type="text" class="form-control" id="marca"></div>
-            <div class="mb-3"><label for="modelo" class="form-label">Modelo</label><input type="text" class="form-control" id="modelo"></div>
-            <div class="mb-3"><label for="anio" class="form-label">Año</label><input type="number" class="form-control" id="anio" min="1900" max="2099"></div>
-            <div class="mb-3"><label for="tipo" class="form-label">Tipo Vehículo</label><input type="text" class="form-control" id="tipo"></div>
             <div class="mb-3">
-              <label for="ubicacion" class="form-label required-field">Ubicación</label>
-              <select class="form-select" id="ubicacion" required>
-                <option value="">Seleccione un taller</option>
-                {% for taller in talleres %}
-                  <option value="{{ taller.taller_id }}">{{ taller.nombre }} - {{ taller.ubicacion }}</option>
-                {% endfor %}
-              </select>
-
+              <label for="marca" class="form-label">Marca</label>
+              <input type="text" class="form-control" id="marca">
+            </div>
+            <div class="mb-3">
+              <label for="modelo" class="form-label">Modelo</label>
+              <input type="text" class="form-control" id="modelo">
+            </div>
+            <div class="mb-3">
+              <label for="anio" class="form-label">Año</label>
+              <input type="number" class="form-control" id="anio" min="1900" max="2099">
+            </div>
+            <div class="mb-3">
+              <label for="tipo" class="form-label">Tipo Vehículo</label>
+              <input type="text" class="form-control" id="tipo">
             </div>
           </div>
 
-          <!-- Mantenimiento -->
+          <!-- Taller -->
+          <div class="mb-3">
+            <label for="ubicacion" class="form-label required-field">Seleccione un taller</label>
+            <select class="form-select" id="ubicacion" required>
+              {% for taller in talleres %}
+                <option value="{{ taller.taller_id }}">{{ taller.nombre }} - {{ taller.ubicacion }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Tipo de Mantenimiento -->
           <div class="mb-3">
             <label for="tipoMantenimiento" class="form-label required-field">Tipo Mantenimiento</label>
             <select class="form-select" id="tipoMantenimiento" required>
@@ -105,20 +120,18 @@
             <input type="text" class="form-control" id="rut" maxlength="12" required>
           </div>
 
-          <!-- Datos del Chofer (NUEVO) - Se muestra cuando el RUT no existe -->
+          <!-- Datos del Chofer (NUEVO) -->
           <div id="datosChoferNuevo" style="display: none;">
             <hr>
             <h6>Datos del Chofer Nuevo</h6>
             
-            <!-- RUT (oculto, ya viene del campo principal) -->
             <input type="hidden" id="rutChoferNuevo">
-            
+
             <div class="mb-3">
               <label for="nombreChofer" class="form-label required-field">Nombre Completo</label>
               <input type="text" class="form-control" id="nombreChofer">
             </div>
 
-            <!-- CARGO FIJO COMO CHOFER -->
             <div class="mb-3">
               <label for="cargoChofer" class="form-label">Cargo</label>
               <input type="text" class="form-control" id="cargoChofer" value="CHOFER" readonly style="background-color: #f8f9fa;">

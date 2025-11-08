@@ -6,20 +6,15 @@ let currentDate = new Date();
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("✅ ingreso_vehiculos.js cargado correctamente");
 
-  // Cargar horarios ocupados desde el backend
   await cargarHorariosOcupados();
-
-  // Renderizar calendario inicial
   generarCalendario();
 
-  // Manejar envío de formulario principal
   const form = document.getElementById("ingresoForm");
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     registrarOrdenTrabajo();
   });
 
-  // Manejar cambio de mes
   window.previousMonth = () => cambiarMes(-1);
   window.nextMonth = () => cambiarMes(1);
 });
@@ -109,8 +104,7 @@ function seleccionarFecha(fechaISO) {
 // =============================
 function generarBloquesHorarios() {
   const horas = [];
-  let h = 9,
-    m = 0;
+  let h = 9, m = 0;
   while (h < 18) {
     const hh = h.toString().padStart(2, "0");
     const mm = m.toString().padStart(2, "0");
@@ -150,16 +144,17 @@ function seleccionarHora(hora) {
 // 🔹 Registrar orden de trabajo
 // =============================
 async function registrarOrdenTrabajo() {
-  const patente = document.getElementById("patente").value;
-  const rut = document.getElementById("rut").value;
-  const tipo_mantenimiento = document.getElementById("tipoMantenimiento").value;
-  const kilometraje = document.getElementById("kilometraje").value;
-  const descripcion = document.getElementById("descripcion").value;
-  const marca = document.getElementById("marca").value;
-  const modelo = document.getElementById("modelo").value;
-  const anio = document.getElementById("anio").value;
-  const tipo_vehiculo = document.getElementById("tipo").value;
-  const ubicacion = document.getElementById("ubicacion").value;
+  const patente = document.getElementById("patente").value.trim().toUpperCase();
+  const ubicacion = document.getElementById("ubicacion")?.value || 1;
+  const rut_chofer = document.getElementById("rut").value.trim();
+  const tipo_mantenimiento = document.getElementById("tipoMantenimiento").value.trim();
+  const kilometraje = document.getElementById("kilometraje").value.trim();
+  const descripcion = document.getElementById("descripcion").value.trim();
+
+  const marca = document.getElementById("marca")?.value || null;
+  const modelo = document.getElementById("modelo")?.value || null;
+  const anio = document.getElementById("anio")?.value || null;
+  const tipo_vehiculo = document.getElementById("tipo")?.value || null;
 
   if (!selectedDate || !selectedTime) {
     mostrarError("Debes seleccionar una fecha y hora disponibles.");
@@ -168,35 +163,53 @@ async function registrarOrdenTrabajo() {
 
   const datos = {
     patente,
-    rut,
+    rut: rut_chofer,
     tipo_mantenimiento,
     kilometraje,
     descripcion,
+    fecha: selectedDate,
+    hora: selectedTime,
+    ubicacion: parseInt(ubicacion),
     marca,
     modelo,
     anio,
-    tipo_vehiculo,
-    ubicacion,
-    fecha: selectedDate,
-    hora: selectedTime,
+    tipo_vehiculo
   };
+
+  console.log("📦 Datos enviados:", datos);
 
   try {
     const res = await fetch("/api/ordenestrabajo/registrar/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(datos),
+      body: JSON.stringify(datos)
     });
 
     const data = await res.json();
+    console.log("📩 Respuesta backend:", data);
 
     if (data.status === "ok") {
-      mostrarExito("Orden registrada correctamente.");
+      mostrarExito("✅ Orden registrada correctamente.");
+      ocultarFormularioNuevoVehiculo();
       await cargarHorariosOcupados();
       generarCalendario();
-    } else {
-      mostrarError(data.message || "Error al registrar la orden.");
+      return;
     }
+
+    // 🚨 Si el vehículo no existe
+    if (
+      data.message &&
+      data.message.toLowerCase().includes("no existe") &&
+      data.message.toLowerCase().includes("vehículo")
+    ) {
+      if (data.status === "vehiculo_no_existe") {
+      mostrarError("🚗 El vehículo no está registrado. Completa los datos del nuevo vehículo.");
+      mostrarFormularioNuevoVehiculo(patente);
+      return;
+    }
+    }
+
+    mostrarError(data.message || "Error al registrar la orden.");
   } catch (err) {
     console.error("❌ Error:", err);
     mostrarError("No se pudo registrar la orden.");
@@ -204,10 +217,28 @@ async function registrarOrdenTrabajo() {
 }
 
 // =============================
-// 🔹 Funciones de alerta
+// 🔹 Mostrar / ocultar formulario nuevo vehículo
+// =============================
+function mostrarFormularioNuevoVehiculo(patente = "") {
+  const form = document.getElementById("formNuevoVehiculo");
+  if (form) {
+    form.classList.remove("d-none");
+    const inputPatente = document.getElementById("nuevaPatente");
+    if (inputPatente) inputPatente.value = patente;
+  }
+}
+
+function ocultarFormularioNuevoVehiculo() {
+  const form = document.getElementById("formNuevoVehiculo");
+  if (form) form.classList.add("d-none");
+}
+
+// =============================
+// 🔹 Alertas visuales
 // =============================
 function mostrarExito(msg) {
   const alert = document.getElementById("successAlert");
+  if (!alert) return alert(msg);
   alert.textContent = msg;
   alert.classList.remove("d-none");
   setTimeout(() => alert.classList.add("d-none"), 4000);
@@ -215,8 +246,8 @@ function mostrarExito(msg) {
 
 function mostrarError(msg) {
   const alert = document.getElementById("errorAlert");
+  if (!alert) return alert(msg);
   alert.textContent = msg;
   alert.classList.remove("d-none");
   setTimeout(() => alert.classList.add("d-none"), 5000);
 }
-

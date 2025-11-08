@@ -1,15 +1,13 @@
-#pepsico_taller/pepsico_taller/settings.py
-
-import pymysql 
+# pepsico_taller/settings.py
+import pymysql
 pymysql.install_as_MySQLdb()
-from decouple import config, Csv
+from decouple import config
 import os
 from pathlib import Path
-"""
-Django settings for pepsico_taller project.
-Configuración para PepsiCo Taller - Gestión de Flota Vehicular
-"""
 
+# ======================
+# 🔹 CONFIGURACIÓN BASE
+# ======================
 AUTH_USER_MODEL = 'autenticacion.Empleado'
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,6 +15,9 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.loca.lt']
 
+# ======================
+# 🔹 APLICACIONES
+# ======================
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -25,16 +26,23 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+
+    # Apps locales
     'autenticacion',
     'vehiculos',
     'talleres',
     'reportes',
     'documentos',
     'ordenestrabajo',
-    'rest_framework',
     'utils',
+
+    # API REST
+    'rest_framework',
 ]
 
+# ======================
+# 🔹 MIDDLEWARE
+# ======================
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -46,6 +54,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ======================
+# 🔹 URLS / TEMPLATES
+# ======================
 ROOT_URLCONF = 'pepsico_taller.urls'
 
 TEMPLATES = [
@@ -64,6 +75,9 @@ TEMPLATES = [
     },
 ]
 
+# ======================
+# 🔹 BASE DE DATOS
+# ======================
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -78,30 +92,37 @@ DATABASES = {
     }
 }
 
-
-
+# ======================
+# 🔹 ARCHIVOS ESTÁTICOS / MEDIA
+# ======================
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-
-# Carpeta donde se almacenarán los archivos subidos
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-
+# ======================
+# 🔹 CORS (Frontend)
+# ======================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000", 
     "http://localhost:8000",
     "https://testeorepocaps.loca.lt",
 ]
-CORS_ALLOW_ALL_ORIGINS = True  # Temporalmente para desarrollo
+CORS_ALLOW_ALL_ORIGINS = True  # Solo en desarrollo
 CORS_ALLOW_CREDENTIALS = True
 
+# ======================
+# 🔹 LOGIN / REGISTRO
+# ======================
 LOGIN_URL = 'inicio-sesion'
 LOGIN_REDIRECT_URL = 'inicio'
 LOGOUT_REDIRECT_URL = 'inicio-sesion'
 
+# ======================
+# 🔹 LOCALIZACIÓN
+# ======================
 LANGUAGE_CODE = 'es-cl'
 TIME_ZONE = 'America/Santiago'
 USE_I18N = True
@@ -109,10 +130,12 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#se configurarar mas tarde el envio de correos
-#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-#EMAIL_HOST = config('EMAIL_HOST')
-#EMAIL_PORT = config('EMAIL_PORT', cast=int)
-#EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-#EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-#EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+# ======================
+# 🔹 (Opcional) EMAIL
+# ======================
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = config('EMAIL_HOST')
+# EMAIL_PORT = config('EMAIL_PORT', cast=int)
+# EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+# EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
