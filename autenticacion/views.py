@@ -1,123 +1,166 @@
 # autenticacion/views.py
-from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from .models import Empleado
-from vehiculos.models import Vehiculo
-from ordenestrabajo.models import OrdenTrabajo
 import json
 import logging
-from django.contrib.auth import authenticate, login
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
+from django.db import connection, OperationalError
+from django.db.models import Q
+from django.contrib.auth import authenticate, login, logout
+
+from autenticacion.models import Empleado
+from vehiculos.models import Vehiculo
+from ordenestrabajo.models import OrdenTrabajo
+
 logger = logging.getLogger(__name__)
-from .forms import EmpleadoForm
-from django.contrib.auth.hashers import make_password
-from talleres.models import Taller
-
 
 # ===========================
-# VISTAS DE PÁGINA
+# HELPERS
 # ===========================
 
-def login_view(request):
+def _ok_db():
     try:
-        if request.session.get('usuario'):
-            logger.info("Usuario ya autenticado, redirigiendo a /inicio/")
-            return redirect('inicio')
-        return render(request, 'inicio-sesion.html')
-    except BrokenPipeError:
-        logger.warning("Broken pipe en login_view")
-        return HttpResponse(status=204)
+        with connection.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+        return True
+    except OperationalError:
+        return False
 
-def inicio_view(request):
-    try:
-        usuario = request.session.get('usuario')
-        if not usuario:
-            logger.warning("Usuario no autenticado, redirigiendo a /inicio-sesion/")
-            return redirect('inicio-sesion')
-        return render(request, 'inicio.html', {'usuario': usuario})
-    except BrokenPipeError:
-        logger.warning("Broken pipe en inicio_view")
-        return HttpResponse(status=204)
+def _empleado_payload(emp: Empleado):
+    """
+    Serializa el empleado para el front.
+    """
+    return {
+        "rut": emp.rut,
+        "usuario": emp.usuario,
+        "nombre": emp.nombre,
+        "cargo": emp.cargo,
+        "region": emp.region or "No especificada",
+        "horario": emp.horario or "No especificado",
+        "disponibilidad": int(emp.disponibilidad),  # 0/1
+        "taller": {
+            "taller_id": emp.taller_id,
+            "nombre": emp.taller.nombre,
+            "ubicacion": emp.taller.ubicacion,
+        },
+        "is_staff": bool(emp.is_staff),
+        "is_active": bool(emp.is_active),
+        "is_superuser": bool(emp.is_superuser),
+    }
 
 # ===========================
-# API STATUS
+# API: STATUS
 # ===========================
 
-def status_api(request):
+@require_GET
+def status_view(request):
+    """
+    GET /api/autenticacion/status/
+    Respuesta compatible con tu login.js (usa claves: status, database, server).
+    """
     try:
         total_empleados = Empleado.objects.count()
+        db_ok = _ok_db()
         return JsonResponse({
-            'status': 'conectado',
-            'database': f'MySQL conectado ({total_empleados} empleados)',
-            'server': 'Django 4.2.25 funcionando'
+            "status": "conectado",
+            "database": f"MySQL conectado ({total_empleados} empleados)" if db_ok else "Error BD",
+            "server": "Django 4.2.25 funcionando"
         })
     except Exception as e:
-        logger.error(f"Error en status_api: {str(e)}")
+        logger.error(f"Error en status_view: {e}")
         return JsonResponse({
-            'status': 'conectado',
-            'database': f'Error BD: {str(e)}',
-            'server': 'Django 4.2.25 funcionando'
+            "status": "conectado",
+            "database": f"Error BD: {str(e)}",
+            "server": "Django 4.2.25 funcionando"
         })
 
 # ===========================
-# LOGIN / LOGOUT
+# API: LOGIN / LOGOUT
 # ===========================
 
 @csrf_exempt
-def login_api(request):
+def login_view(request):
+    """
+    POST JSON: { "usuario": "...", "contrasena": "..." }
+    - Autentica con tu EmpleadosBackend (authenticate(username=..., password=...))
+    - Crea sesión Django
+    - Devuelve payload para localStorage: { success, message, empleado }
+    """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
 
     try:
-        data = json.loads(request.body)
-        username = data.get('usuario')
-        password = data.get('contrasena')
+        data = json.loads(request.body.decode('utf-8'))
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'JSON inválido'}, status=400)
 
-        if not username or not password:
-            return JsonResponse({'success': False, 'message': 'Complete todos los campos'})
+    username = (data.get('usuario') or '').strip()
+    password = (data.get('contrasena') or '').strip()
 
-        user = authenticate(request, usuario=username, password=password)
-        if user is not None:
-            login(request, user)
-            empleado = {
-                'nombre': user.nombre,
-                'rut': user.rut,
-                'cargo': user.cargo,
-                'region': user.region or 'No especificada',
-                'horario': user.horario or 'No especificado',
-                'disponibilidad': user.disponibilidad,
-                'username': user.usuario
-            }
-            request.session['usuario'] = empleado
-            return JsonResponse({'success': True, 'message': 'Login exitoso', 'empleado': empleado})
-        else:
-            return JsonResponse({'success': False, 'message': 'Usuario o contraseña incorrectos'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'message': f'Error en el servidor: {str(e)}'})
+    if not username or not password:
+        return JsonResponse({'success': False, 'message': 'Complete todos los campos'}, status=400)
+
+    # IMPORTANTE: usar 'username' y 'password'
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return JsonResponse({'success': False, 'message': 'Usuario o contraseña incorrectos'}, status=401)
+
+    # Crea sesión Django
+    login(request, user)
+
+    # Cargar datos del empleado real (tabla empleados)
+    try:
+        emp = Empleado.objects.select_related('taller').get(usuario=username)
+    except Empleado.DoesNotExist:
+        # Muy raro si authenticate pasó, pero lo manejamos
+        return JsonResponse({'success': False, 'message': 'Empleado no encontrado'}, status=404)
+
+    empleado_payload = _empleado_payload(emp)
+    return JsonResponse({'success': True, 'message': 'Login exitoso', 'empleado': empleado_payload})
 
 
 @csrf_exempt
-def logout_api(request):
-    if request.method != 'POST':
+def logout_view(request):
+    """
+    POST/GET /api/autenticacion/logout/
+    - Cierra sesión Django
+    """
+    if request.method not in ('POST', 'GET'):
         return JsonResponse({'success': False, 'message': 'Método no permitido'}, status=405)
     try:
-        request.session.flush()
-        logger.info("Sesión cerrada correctamente")
+        logout(request)
         return JsonResponse({'success': True, 'message': 'Sesión cerrada correctamente'})
     except Exception as e:
-        logger.error(f"Error en logout_api: {str(e)}")
+        logger.error(f"Error en logout_view: {e}")
         return JsonResponse({'success': False, 'message': f'No se pudo cerrar la sesión: {str(e)}'})
 
 # ===========================
-# DASHBOARD STATS
+# API: DASHBOARD STATS
 # ===========================
 
-def dashboard_stats_api(request):
+@require_GET
+def dashboard_stats_view(request):
+    """
+    GET /api/autenticacion/dashboard-stats/
+    Resumen para tarjetas del dashboard.
+
+    Definiciones (MVP):
+      - total_vehiculos: total de registros en 'vehiculos'
+      - total_empleados: empleados activos (is_active = 1)
+      - en_taller: OTs con fecha_salida IS NULL (vehículo aún en taller)
+      - en_proceso: OTs abiertas con estado 'Pendiente' o 'En proceso' (insensible a mayúsculas)
+    """
     try:
         total_vehiculos = Vehiculo.objects.count()
-        en_taller = OrdenTrabajo.objects.filter(estado='Pendiente').count()
-        en_proceso = OrdenTrabajo.objects.filter(estado='En Proceso').count()
-        total_empleados = Empleado.objects.count()
+        total_empleados = Empleado.objects.filter(is_active=True).count()
+
+        qs_abiertas = OrdenTrabajo.objects.filter(fecha_salida__isnull=True)
+        en_taller = qs_abiertas.count()
+        en_proceso = qs_abiertas.filter(
+            Q(estado__iexact='En proceso') | Q(estado__iexact='Pendiente')
+        ).count()
+
         return JsonResponse({
             'total_vehiculos': total_vehiculos,
             'en_taller': en_taller,
@@ -125,42 +168,5 @@ def dashboard_stats_api(request):
             'total_empleados': total_empleados
         })
     except Exception as e:
-        logger.error(f"Error en dashboard_stats_api: {str(e)}")
+        logger.error(f"Error en dashboard_stats_view: {e}")
         return JsonResponse({'error': f'No se pudieron obtener los stats: {str(e)}'}, status=500)
-    
-# ===========================
-# REGISTRAR CHOFER
-# ===========================
-@csrf_exempt
-def registrar_chofer(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            if Empleado.objects.filter(rut=data.get('rut')).exists():
-                return JsonResponse({"success": False, "message": "El RUT ya está registrado."})
-
-            Empleado.objects.create(
-                rut=data.get('rut'),
-                nombre=data.get('nombre'),
-                cargo=data.get('cargo'),
-                region=data.get('region'),
-                horario=data.get('horario'),
-                usuario=data.get('usuario'),
-                password=data.get('password'),
-                disponibilidad=data.get('disponibilidad'),
-                taller_id=data.get('taller_id')
-            )
-
-            return JsonResponse({"success": True})
-        except Exception as e:
-            return JsonResponse({"success": False, "message": str(e)}, status=400)
-    return JsonResponse({"success": False, "message": "Método no permitido"}, status=405)
-
-# ===========================
-# VERIFICAR RUT EXISTE
-# ===========================
-def existe_chofer(request):
-    rut = request.GET.get('rut')
-    existe = Empleado.objects.filter(rut=rut).exists()
-    return JsonResponse({'existe': existe})
-

@@ -1,3 +1,4 @@
+# autenticacion/backends.py
 from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.models import AnonymousUser, User
 from django.contrib.auth.hashers import check_password, make_password
