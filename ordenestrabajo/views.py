@@ -1,99 +1,56 @@
-from django.views.decorators.csrf import csrf_exempt
+# --- API Pausas (añadir al final de ordenestrabajo/views.py) ---
 from django.http import JsonResponse
-from rest_framework import viewsets
-from datetime import datetime
-import json
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+from .models import OrdenTrabajo, Pausa
 
-from vehiculos.models import Vehiculo
-from autenticacion.models import Empleado
-from talleres.models import Taller
-from .models import OrdenTrabajo
-from .serializers import OrdenTrabajoSerializer
-
-
-class OrdenTrabajoViewSet(viewsets.ModelViewSet):
-    queryset = OrdenTrabajo.objects.all()
-    serializer_class = OrdenTrabajoSerializer
-
-
-def horarios_ocupados(request):
-    """
-    Retorna todas las fechas y horas ocupadas en formato JSON
-    para marcar en el calendario del frontend.
-    """
-    ordenes = OrdenTrabajo.objects.all()
-    ocupados = {}
-
-    for orden in ordenes:
-        if not orden.fecha_ingreso or not orden.hora_ingreso:
-            continue
-
-        fecha = orden.fecha_ingreso.strftime('%Y-%m-%d')
-        hora = orden.hora_ingreso.strftime('%H:%M')
-
-        if fecha not in ocupados:
-            ocupados[fecha] = []
-        ocupados[fecha].append(hora)
-
-    return JsonResponse(ocupados)
-
+def _get_ot_or_404(ot_id):
+    try:
+        return OrdenTrabajo.objects.get(pk=ot_id)
+    except OrdenTrabajo.DoesNotExist:
+        return None
 
 @csrf_exempt
-def registrar_orden_trabajo(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            patente = data.get('patente')
-            rut = data.get('rut')
+@require_http_methods(["POST"])
+def pausa_start(request, ot_id):
+    ot = _get_ot_or_404(ot_id)
+    if ot is None:
+        return JsonResponse({"success": False, "message": "OT no encontrada"}, status=404)
+    if Pausa.objects.filter(ot_id=ot_id, activo=True).exists():
+        return JsonResponse({"success": False, "message": "Ya existe una pausa activa"}, status=400)
 
-            # Obtener taller
-            taller = Taller.objects.get(taller_id=data.get('ubicacion'))
-
-            # Verificar vehículo existente
-            vehiculo = Vehiculo.objects.filter(patente=patente).first()
-            if not vehiculo:
-                return JsonResponse({
-                    "status": "vehiculo_no_existe",
-                    "message": "El vehículo con esta patente no existe en el sistema."
-                }, status=200)
-
-            # Verificar chofer
-            chofer = Empleado.objects.filter(rut=rut).first()
-            if not chofer:
-                return JsonResponse({
-                    "status": "nuevo_chofer",
-                    "message": "Este RUT no está registrado. Completa los datos del nuevo chofer."
-                }, status=200)
-
-            # Crear la orden
-            OrdenTrabajo.objects.create(
-                fecha_ingreso=data.get('fecha'),
-                hora_ingreso=data.get('hora'),
-                descripcion=data.get('descripcion'),
-                estado='Pendiente',
-                patente=vehiculo,
-                taller=taller,
-                rut=chofer
-            )
-
-            return JsonResponse({
-                "status": "ok",
-                "message": "Orden de trabajo registrada correctamente."
-            })
-
-        except Taller.DoesNotExist:
-            return JsonResponse({
-                "status": "error",
-                "message": "El taller seleccionado no existe."
-            }, status=400)
-
-        except Exception as e:
-            return JsonResponse({
-                "status": "error",
-                "message": str(e)
-            }, status=400)
-
+    motivo = (request.POST.get("motivo") or "Pausa iniciada").strip()
+    p = Pausa.objects.create(ot_id=ot_id, motivo=motivo, inicio=timezone.now(), activo=True)
     return JsonResponse({
-        "status": "error",
-        "message": "Método no permitido"
-    }, status=405)
+        "success": True,
+        "pausa": {"id": p.id, "inicio": p.inicio.isoformat(), "motivo": p.motivo, "activo": p.activo}
+    }, status=201)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def pausa_stop(request, ot_id):
+    ot = _get_ot_or_404(ot_id)
+    if ot is None:
+        return JsonResponse({"success": False, "message": "OT no encontrada"}, status=404)
+    try:
+        p = Pausa.objects.get(ot_id=ot_id, activo=True)
+    except Pausa.DoesNotExist:
+        return JsonResponse({"success": False, "message": "No hay pausa activa"}, status=400)
+
+    p.fin = timezone.now()
+    p.activo = False
+    p.save(update_fields=["fin", "activo"])
+    return JsonResponse({
+        "success": True,
+        "pausa": {"id": p.id, "fin": p.fin.isoformat(), "activo": p.activo}
+    })
+
+@require_http_methods(["GET"])
+def pausa_list(request, ot_id):
+    if _get_ot_or_404(ot_id) is None:
+        return JsonResponse({"success": False, "message": "OT no encontrada"}, status=404)
+    data = list(Pausa.objects.filter(ot_id=ot_id).order_by("-inicio").values(
+        "id", "motivo", "inicio", "fin", "activo"
+    ))
+    return JsonResponse({"success": True, "pausas": data})

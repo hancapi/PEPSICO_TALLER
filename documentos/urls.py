@@ -1,8 +1,10 @@
+# documentos/urls.py
 from django.urls import path
-from django.views.generic import TemplateView
+from . import views
 
 app_name = 'documentos'
 
 urlpatterns = [
-    path('subir/', TemplateView.as_view(template_name='subir-documentos.html'), name='subir_documentos'),
+    path('', views.document_list, name='list'),         # GET ?ot_id=... | ?patente=...
+    path('upload/', views.document_upload, name='upload'),  # POST multipart
 ]
