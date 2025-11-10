@@ -17,6 +17,7 @@ urlpatterns = [
     # Páginas de negocio (templates que ya tienes)
     path('registro-taller/', TemplateView.as_view(template_name='registro-taller.html'), name='registro-taller'),
     path('subir-documentos/', TemplateView.as_view(template_name='subir-documentos.html'), name='subir-documentos'),
+    # Página de Ingreso de Vehículos (HTML)
     path('ingreso-vehiculos/', TemplateView.as_view(template_name='ingreso-vehiculos.html'), name='ingreso-vehiculos'),
     path('ficha-vehiculo/', TemplateView.as_view(template_name='ficha-vehiculo.html'), name='ficha-vehiculo'),
     path('reportes/', TemplateView.as_view(template_name='reportes.html'), name='reportes'),

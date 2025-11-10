@@ -1,253 +1,218 @@
-let fechasOcupadas = {};
-let selectedDate = null;
-let selectedTime = null;
-let currentDate = new Date();
+// static/js/ingreso_vehiculos.js
+(() => {
+  const BASE_API = '/api/ordenestrabajo';
 
-document.addEventListener("DOMContentLoaded", async function () {
-  console.log("✅ ingreso_vehiculos.js cargado correctamente");
+  const $  = (id)  => document.getElementById(id);
+  const qs = (sel) => document.querySelector(sel);
+  const qsa= (sel) => Array.from(document.querySelectorAll(sel));
 
-  await cargarHorariosOcupados();
-  generarCalendario();
+  const form         = $('formIngreso');
+  const btnCrear     = $('btnCrear');
+  const okIngreso    = $('okIngreso');
+  const errIngreso   = $('errIngreso');
 
-  const form = document.getElementById("ingresoForm");
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    registrarOrdenTrabajo();
-  });
+  const inputPatente = $('patente');
+  const inputDesc    = $('descripcion');
+  const inputFecha   = $('fecha');
+  const selectTaller = $('tallerId');
 
-  window.previousMonth = () => cambiarMes(-1);
-  window.nextMonth = () => cambiarMes(1);
-});
+  const slotsGrid    = $('slotsGrid');
+  const slotResumen  = $('slotResumen');
+  const slotSel      = $('slotSel');
 
-// =============================
-// 🔹 Cargar horarios ocupados desde Django
-// =============================
-async function cargarHorariosOcupados() {
-  try {
-    const res = await fetch("/api/ordenestrabajo/horarios_ocupados/");
-    if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
-    fechasOcupadas = await res.json();
-    console.log("📅 Horarios ocupados:", fechasOcupadas);
-  } catch (err) {
-    console.error("❌ Error al cargar horarios ocupados:", err);
+  let horaSeleccionada = null;
+
+  // ===== UI helpers =====
+  function clearAlerts() {
+    if (okIngreso) { okIngreso.classList.add('d-none'); okIngreso.style.display = 'none'; }
+    if (errIngreso){ errIngreso.classList.add('d-none'); errIngreso.style.display = 'none'; }
   }
-}
 
-// =============================
-// 🔹 Generar calendario dinámico
-// =============================
-function generarCalendario() {
-  const calendar = document.getElementById("calendar");
-  const currentMonth = document.getElementById("currentMonth");
-  calendar.innerHTML = "";
-
-  const mes = currentDate.getMonth();
-  const año = currentDate.getFullYear();
-  const primerDia = new Date(año, mes, 1);
-  const ultimoDia = new Date(año, mes + 1, 0);
-  const nombreMes = primerDia.toLocaleString("es-ES", { month: "long" });
-
-  currentMonth.textContent = `${nombreMes.toUpperCase()} ${año}`;
-
-  for (let d = 1; d <= ultimoDia.getDate(); d++) {
-    const fecha = new Date(año, mes, d);
-    const fechaISO = fecha.toISOString().split("T")[0];
-
-    const btn = document.createElement("button");
-    btn.className = "calendar-day btn btn-outline-secondary";
-    btn.textContent = d;
-
-    if (fechasOcupadas[fechaISO]) btn.classList.add("ocupado");
-
-    btn.addEventListener("click", () => seleccionarFecha(fechaISO));
-    calendar.appendChild(btn);
+  function scrollAlertIntoView(el) {
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-}
 
-// =============================
-// 🔹 Cambiar mes del calendario
-// =============================
-function cambiarMes(delta) {
-  currentDate.setMonth(currentDate.getMonth() + delta);
-  generarCalendario();
-}
+  function showOk(msg) {
+    console.debug('[UI] showOk:', msg);
+    if (!okIngreso) return;
+    okIngreso.textContent = msg || '✅ OT creada correctamente';
+    okIngreso.classList.remove('d-none');
+    okIngreso.style.display = 'block';
+    if (errIngreso) { errIngreso.classList.add('d-none'); errIngreso.style.display = 'none'; }
+    scrollAlertIntoView(okIngreso);
+  }
 
-// =============================
-// 🔹 Seleccionar fecha y mostrar horarios
-// =============================
-function seleccionarFecha(fechaISO) {
-  selectedDate = fechaISO;
-  document.getElementById("fechaSeleccionada").value = fechaISO;
+  function showErr(msg) {
+    console.debug('[UI] showErr:', msg);
+    if (!errIngreso) return;
+    errIngreso.textContent = `❌ ${msg || 'Error al crear OT'}`;
+    errIngreso.classList.remove('d-none');
+    errIngreso.style.display = 'block';
+    if (okIngreso) { okIngreso.classList.add('d-none'); okIngreso.style.display = 'none'; }
+    scrollAlertIntoView(errIngreso);
+  }
 
-  const timeSlots = document.getElementById("timeSlots");
-  timeSlots.innerHTML = "";
-  const ocupados = fechasOcupadas[fechaISO] || [];
+  function enableCreateButtonIfReady() {
+    const patente = inputPatente?.value?.trim();
+    const fecha   = inputFecha?.value;
+    const taller  = selectTaller?.value;
+    const ready   = Boolean(patente && fecha && taller && horaSeleccionada);
+    if (btnCrear) btnCrear.disabled = !ready;
+  }
 
-  const horarios = generarBloquesHorarios();
-  horarios.forEach((hora) => {
-    const btn = document.createElement("button");
-    btn.className = "btn btn-outline-primary m-1";
-    btn.textContent = hora;
-
-    if (ocupados.includes(hora)) {
-      btn.disabled = true;
-      btn.classList.add("btn-danger");
-    }
-
-    btn.addEventListener("click", () => seleccionarHora(hora));
-    timeSlots.appendChild(btn);
-  });
-}
-
-// =============================
-// 🔹 Generar bloques horarios
-// =============================
-function generarBloquesHorarios() {
-  const horas = [];
-  let h = 9, m = 0;
-  while (h < 18) {
-    const hh = h.toString().padStart(2, "0");
-    const mm = m.toString().padStart(2, "0");
-    horas.push(`${hh}:${mm}`);
-    m += 30;
-    if (m === 60) {
-      m = 0;
-      h++;
+  function setSubmitting(on) {
+    if (!btnCrear) return;
+    if (on) {
+      btnCrear.disabled = true;
+      btnCrear.innerText = '⏳ Creando...';
+    } else {
+      btnCrear.innerText = '💾 Crear OT';
+      enableCreateButtonIfReady();
     }
   }
-  return horas;
-}
 
-// =============================
-// 🔹 Seleccionar hora
-// =============================
-function seleccionarHora(hora) {
-  selectedTime = hora;
-  document.getElementById("horaSeleccionada").value = hora;
+  // ===== Agenda =====
+  async function cargarAgenda(preserveMsg = false) {
+    if (!preserveMsg) clearAlerts();
 
-  document.querySelectorAll("#timeSlots button").forEach((b) =>
-    b.classList.remove("active")
-  );
-  const btn = [...document.querySelectorAll("#timeSlots button")].find(
-    (b) => b.textContent === hora
-  );
-  if (btn) btn.classList.add("active");
+    horaSeleccionada = null;
+    if (slotSel) slotSel.textContent = '';
+    if (slotResumen) slotResumen.classList.add('d-none');
+    if (btnCrear) btnCrear.disabled = true;
 
-  const summary = document.getElementById("scheduleSummary");
-  document.getElementById(
-    "selectedSchedule"
-  ).textContent = `${selectedDate} a las ${hora}`;
-  summary.style.display = "block";
-}
+    const fecha    = inputFecha?.value;
+    const tallerId = selectTaller?.value;
+    if (!fecha || !tallerId) return;
 
-// =============================
-// 🔹 Registrar orden de trabajo
-// =============================
-async function registrarOrdenTrabajo() {
-  const patente = document.getElementById("patente").value.trim().toUpperCase();
-  const ubicacion = document.getElementById("ubicacion")?.value || 1;
-  const rut_chofer = document.getElementById("rut").value.trim();
-  const tipo_mantenimiento = document.getElementById("tipoMantenimiento").value.trim();
-  const kilometraje = document.getElementById("kilometraje").value.trim();
-  const descripcion = document.getElementById("descripcion").value.trim();
+    if (slotsGrid) {
+      slotsGrid.innerHTML = '<div class="text-muted">Cargando...</div>';
+    }
 
-  const marca = document.getElementById("marca")?.value || null;
-  const modelo = document.getElementById("modelo")?.value || null;
-  const anio = document.getElementById("anio")?.value || null;
-  const tipo_vehiculo = document.getElementById("tipo")?.value || null;
+    try {
+      const url = `${BASE_API}/api/agenda/slots/?fecha=${encodeURIComponent(fecha)}&taller_id=${encodeURIComponent(tallerId)}`;
+      const res = await fetch(url, { credentials: 'same-origin' });
+      const data = await res.json();
 
-  if (!selectedDate || !selectedTime) {
-    mostrarError("Debes seleccionar una fecha y hora disponibles.");
-    return;
+      if (!res.ok || !data.success) {
+        if (slotsGrid) {
+          slotsGrid.innerHTML = `<div class="text-danger">Error cargando agenda: ${data.message || res.status}</div>`;
+        }
+        return;
+      }
+
+      if (!slotsGrid) return;
+      const frag = document.createDocumentFragment();
+
+      (data.slots || []).forEach(({ hora, ocupado }) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = `btn btn-sm me-2 mb-2 ${ocupado ? 'btn-outline-secondary' : 'btn-outline-success'}`;
+        b.textContent = hora;
+        b.disabled = !!ocupado;
+
+        b.addEventListener('click', () => {
+          qsa('#slotsGrid button').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          horaSeleccionada = hora;
+          if (slotSel) slotSel.textContent = hora;
+          if (slotResumen) slotResumen.classList.remove('d-none');
+          enableCreateButtonIfReady();
+        });
+
+        frag.appendChild(b);
+      });
+
+      slotsGrid.innerHTML = '';
+      slotsGrid.appendChild(frag);
+    } catch (e) {
+      console.warn('Error al cargar agenda:', e);
+      if (slotsGrid) slotsGrid.innerHTML = `<div class="text-danger">Error de red al cargar agenda</div>`;
+    }
   }
 
-  const datos = {
-    patente,
-    rut: rut_chofer,
-    tipo_mantenimiento,
-    kilometraje,
-    descripcion,
-    fecha: selectedDate,
-    hora: selectedTime,
-    ubicacion: parseInt(ubicacion),
-    marca,
-    modelo,
-    anio,
-    tipo_vehiculo
-  };
+  // ===== Crear Ingreso =====
+  async function crearIngreso(ev) {
+    ev.preventDefault();
 
-  console.log("📦 Datos enviados:", datos);
+    const patente = (inputPatente?.value || '').trim().toUpperCase();
+    const fecha   = inputFecha?.value;
+    const taller  = selectTaller?.value;
+    const hora    = horaSeleccionada;
+    const desc    = (inputDesc?.value || '').trim();
 
-  try {
-    const res = await fetch("/api/ordenestrabajo/registrar/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(datos)
-    });
-
-    const data = await res.json();
-    console.log("📩 Respuesta backend:", data);
-
-    if (data.status === "ok") {
-      mostrarExito("✅ Orden registrada correctamente.");
-      ocultarFormularioNuevoVehiculo();
-      await cargarHorariosOcupados();
-      generarCalendario();
+    if (!patente) { showErr('Ingresa la patente.'); inputPatente?.focus(); return; }
+    if (inputPatente && !inputPatente.checkValidity()) {
+      showErr(inputPatente.title || 'Patente inválida.');
+      inputPatente.focus();
       return;
     }
+    if (!hora)                 { showErr('Selecciona un horario de la agenda.'); return; }
+    if (!fecha || !taller)     { showErr('Selecciona fecha y taller.'); return; }
 
-    // 🚨 Si el vehículo no existe
-    if (
-      data.message &&
-      data.message.toLowerCase().includes("no existe") &&
-      data.message.toLowerCase().includes("vehículo")
-    ) {
-      if (data.status === "vehiculo_no_existe") {
-      mostrarError("🚗 El vehículo no está registrado. Completa los datos del nuevo vehículo.");
-      mostrarFormularioNuevoVehiculo(patente);
-      return;
+    const formData = new FormData();
+    formData.append('patente', patente);
+    formData.append('fecha',   fecha);
+    formData.append('hora',    hora);
+    formData.append('taller_id', String(taller));
+    if (desc) formData.append('descripcion', desc);
+
+    try {
+      setSubmitting(true);
+      const res = await fetch(`${BASE_API}/api/ingresos/create/`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
+      });
+
+      const isJson = (res.headers.get('content-type') || '').includes('application/json');
+      const data = isJson ? await res.json() : null;
+
+      if (!res.ok || !data?.success) {
+        const msg = data?.message
+          || (res.status === 409 ? 'Conflicto de agenda o vehículo ya en curso.' : `Error HTTP ${res.status}`);
+        showErr(msg);
+        return;
+      }
+
+      const ot = data.ot;
+      showOk(`✅ OT #${ot.id} creada: ${ot.patente} a las ${ot.hora} (taller ${ot.taller_id})`);
+
+      await cargarAgenda(true);   // ¡preserva el mensaje!
+      if (inputDesc) inputDesc.value = '';
+    } catch (e) {
+      console.error('crearIngreso error:', e);
+      showErr('No se pudo crear la OT. Revisa tu conexión e intenta nuevamente.');
+    } finally {
+      setSubmitting(false);
     }
+  }
+
+  // ===== Bind =====
+  function bind() {
+    if (form && !form.dataset.bound) {
+      form.addEventListener('submit', crearIngreso);
+      form.dataset.bound = '1';
+    }
+    $('btnCargarAgenda')?.addEventListener('click', () => cargarAgenda(false));
+    inputFecha?.addEventListener('change',  () => cargarAgenda(false));
+    selectTaller?.addEventListener('change',() => cargarAgenda(false));
+    inputPatente?.addEventListener('input', enableCreateButtonIfReady);
+
+    if (inputFecha && !inputFecha.value) {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      inputFecha.value = `${yyyy}-${mm}-${dd}`;
     }
 
-    mostrarError(data.message || "Error al registrar la orden.");
-  } catch (err) {
-    console.error("❌ Error:", err);
-    mostrarError("No se pudo registrar la orden.");
+    cargarAgenda(false);
   }
-}
 
-// =============================
-// 🔹 Mostrar / ocultar formulario nuevo vehículo
-// =============================
-function mostrarFormularioNuevoVehiculo(patente = "") {
-  const form = document.getElementById("formNuevoVehiculo");
-  if (form) {
-    form.classList.remove("d-none");
-    const inputPatente = document.getElementById("nuevaPatente");
-    if (inputPatente) inputPatente.value = patente;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
   }
-}
-
-function ocultarFormularioNuevoVehiculo() {
-  const form = document.getElementById("formNuevoVehiculo");
-  if (form) form.classList.add("d-none");
-}
-
-// =============================
-// 🔹 Alertas visuales
-// =============================
-function mostrarExito(msg) {
-  const alert = document.getElementById("successAlert");
-  if (!alert) return alert(msg);
-  alert.textContent = msg;
-  alert.classList.remove("d-none");
-  setTimeout(() => alert.classList.add("d-none"), 4000);
-}
-
-function mostrarError(msg) {
-  const alert = document.getElementById("errorAlert");
-  if (!alert) return alert(msg);
-  alert.textContent = msg;
-  alert.classList.remove("d-none");
-  setTimeout(() => alert.classList.add("d-none"), 5000);
-}
+})();

@@ -1,11 +1,13 @@
 # ordenestrabajo/models.py
 from django.db import models
-from autenticacion.models import Empleado, Taller
+from autenticacion.models import Empleado
 from vehiculos.models import Vehiculo
+from talleres.models import Taller
+
 
 class OrdenTrabajo(models.Model):
     class Meta:
-        managed = False
+        managed = False               # La tabla se gestiona por SQL propio
         db_table = 'ordenestrabajo'
 
     ot_id = models.AutoField(primary_key=True)
@@ -14,9 +16,42 @@ class OrdenTrabajo(models.Model):
     fecha_salida = models.DateField(null=True, blank=True)
     descripcion = models.CharField(max_length=255, null=True, blank=True)
     estado = models.CharField(max_length=50, default='Pendiente')
-    patente = models.ForeignKey(Vehiculo, db_column='patente', on_delete=models.RESTRICT)
-    taller = models.ForeignKey(Taller, db_column='taller_id', on_delete=models.RESTRICT)
-    rut = models.ForeignKey(Empleado, db_column='rut', to_field='rut', on_delete=models.RESTRICT)
+
+    # FK a vehiculos.patente (VARCHAR)
+    patente = models.ForeignKey(
+        Vehiculo,
+        db_column='patente',
+        to_field='patente',
+        on_delete=models.RESTRICT,
+    )
+
+    # FK a talleres.taller_id (INT)
+    taller = models.ForeignKey(
+        Taller,
+        db_column='taller_id',
+        to_field='taller_id',
+        on_delete=models.RESTRICT,
+    )
+
+    # Responsable de la OT (FK a empleados.rut - VARCHAR)
+    rut = models.ForeignKey(
+        Empleado,
+        db_column='rut',
+        to_field='rut',
+        on_delete=models.RESTRICT,
+        related_name='ots_responsable',
+    )
+
+    # Quién ingresó la OT (auditoría). Puede ser el mismo u otro. Nullable.
+    rut_creador = models.ForeignKey(
+        Empleado,
+        db_column='rut_creador',
+        to_field='rut',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ots_creadas',
+    )
 
     def __str__(self):
         return f"OT #{self.ot_id} - {self.patente_id} ({self.estado})"
@@ -83,12 +118,13 @@ class Llave(models.Model):
 
 
 # ----------------------------
-# NUEVA TABLA (MVP): Pausas
+# Pausas (manejada por Django)
 # ----------------------------
 class Pausa(models.Model):
-    """
-    Registro de pausas por OT (manejada por Django).
-    """
+    class Meta:
+        db_table = 'pausas'
+        ordering = ['-inicio']
+
     ot = models.ForeignKey(OrdenTrabajo, on_delete=models.CASCADE, related_name='pausas')
     motivo = models.CharField(max_length=120)
     observacion = models.TextField(blank=True, default='')
@@ -96,9 +132,6 @@ class Pausa(models.Model):
     fin = models.DateTimeField(null=True, blank=True)
     activo = models.BooleanField(default=True)
 
-    class Meta:
-        db_table = 'pausas'
-        ordering = ['-inicio']
-
     def __str__(self):
-        return f"Pausa OT {self.ot_id} ({'activa' if self.activo else 'cerrada'})"
+        estado = 'activa' if self.activo else 'cerrada'
+        return f"Pausa OT {self.ot_id} - {self.ot.patente_id} ({estado})"

@@ -1,0 +1,14 @@
+{% comment %}
+Usa: {% include "partials/sidebar.html" with menu_active="inicio|ingreso|registro|reportes" %}
+{% endcomment %}
+<div class="sidebar">
+  <div class="p-3 text-center border-bottom">
+    <h5 class="mb-0">🚗 Taller PepsiCo Chile</h5>
+  </div>
+  <nav class="nav flex-column p-2">
+    <a class="nav-link {% if menu_active == 'inicio' %}active{% endif %}" href="{% url 'inicio' %}">🏠 Inicio</a>
+    <a class="nav-link {% if menu_active == 'ingreso' %}active{% endif %}" href="{% url 'vehiculos:ingreso_vehiculos' %}">🚗 Ingreso Vehículos</a>
+    <a class="nav-link {% if menu_active == 'registro' %}active{% endif %}" href="{% url 'talleres:registro_taller' %}">🛠️ Registro Taller</a>
+    <a class="nav-link {% if menu_active == 'reportes' %}active{% endif %}" href="{% url 'reportes:reportes' %}">📊 Reportes</a>
+  </nav>
+</div>
