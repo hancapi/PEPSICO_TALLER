@@ -1,5 +1,3 @@
-  <!-- inicio-sesion.html -->
-
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
@@ -17,44 +15,71 @@
 </head>
 <body class="login-page">
   <div class="login-container">
+
     <!-- Logo -->
     <div class="logo text-center mb-3">
       <h2>🚗 Taller PepsiCo</h2>
-      <p class="text-muted">Sistema de Gestión de Vehículos</p>
+      <p class="text-muted mb-0">Sistema de Gestión de Vehículos</p>
     </div>
 
-    <!-- Alertas -->
-    <div class="alert alert-danger" id="errorAlert" role="alert">
-      <i class="fas fa-exclamation-triangle"></i>
-      <span id="errorMessage"></span>
+    <!-- Alertas (inicialmente ocultas) -->
+    <div class="alert alert-danger d-none" id="errorAlert" role="alert" aria-live="assertive">
+      <i class="fas fa-exclamation-triangle me-1"></i>
+      <span id="errorMessage">Ocurrió un error</span>
     </div>
-    <div class="alert alert-success" id="successAlert" role="alert">
-      <i class="fas fa-check-circle"></i>
-      <span id="successMessage"></span>
+    <div class="alert alert-success d-none" id="successAlert" role="alert" aria-live="polite">
+      <i class="fas fa-check-circle me-1"></i>
+      <span id="successMessage">Autenticación exitosa</span>
     </div>
 
     <!-- Formulario de login -->
-    <form id="loginForm">
+    <form id="loginForm" autocomplete="off" novalidate>
+      {% csrf_token %}
       <div class="mb-3">
-        <label for="usuario" class="form-label"><i class="fas fa-user"></i> Usuario</label>
-        <input type="text" class="form-control" id="usuario" placeholder="Ingresa tu usuario" maxlength="30"
-          pattern="[a-zA-ZÑñ]+" title="Solo se permiten letras" required>
+        <label for="usuario" class="form-label">
+          <i class="fas fa-user me-1"></i> Usuario
+        </label>
+        <input
+          type="text"
+          class="form-control"
+          id="usuario"
+          name="usuario"
+          placeholder="Ingresa tu usuario"
+          inputmode="text"
+          spellcheck="false"
+          maxlength="30"
+          pattern="^[a-zA-ZñÑ][a-zA-Z0-9_.\-ñÑ]{2,29}$"
+          title="3 a 30 caracteres. Puede incluir letras, números, punto, guion y guion bajo. Debe comenzar con letra."
+          required
+        >
       </div>
 
       <div class="mb-3">
-        <label for="contrasena" class="form-label"><i class="fas fa-lock"></i> Contraseña</label>
-        <input type="password" class="form-control" id="contrasena" placeholder="Ingresa tu contraseña" maxlength="30" required>
+        <label for="contrasena" class="form-label">
+          <i class="fas fa-lock me-1"></i> Contraseña
+        </label>
+        <input
+          type="password"
+          class="form-control"
+          id="contrasena"
+          name="contrasena"
+          placeholder="Ingresa tu contraseña"
+          maxlength="64"
+          required
+        >
       </div>
 
       <div class="d-grid mb-3">
         <button type="submit" class="btn btn-primary" id="loginButton">
-          <span class="spinner-border spinner-border-sm loading-spinner" id="loadingSpinner"></span>
+          <span class="spinner-border spinner-border-sm loading-spinner me-2" id="loadingSpinner" role="status" aria-hidden="true"></span>
           <span id="buttonText">🔐 Ingresar al Sistema</span>
         </button>
       </div>
 
       <div class="text-center">
-        <a href="#" class="text-decoration-none text-muted"><small>¿Olvidaste tu contraseña?</small></a>
+        <a href="#" class="text-decoration-none text-muted">
+          <small>¿Olvidaste tu contraseña?</small>
+        </a>
       </div>
 
       <!-- Estado servidor -->
@@ -70,10 +95,10 @@
       </div>
 
       <!-- Indicador de entorno -->
-      <div id="envIndicator"></div>
+      <div id="envIndicator" class="mt-2 text-center small text-muted"></div>
 
       <!-- Debug solo local -->
-      <div id="debug" style="display:none;"></div>
+      <div id="debug" class="mt-2 small" style="display:none;"></div>
     </form>
   </div>
 

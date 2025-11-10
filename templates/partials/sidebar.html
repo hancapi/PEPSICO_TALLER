@@ -6,9 +6,20 @@ Usa: {% include "partials/sidebar.html" with menu_active="inicio|ingreso|registr
     <h5 class="mb-0">🚗 Taller PepsiCo Chile</h5>
   </div>
   <nav class="nav flex-column p-2">
-    <a class="nav-link {% if menu_active == 'inicio' %}active{% endif %}" href="{% url 'inicio' %}">🏠 Inicio</a>
-    <a class="nav-link {% if menu_active == 'ingreso' %}active{% endif %}" href="{% url 'vehiculos:ingreso_vehiculos' %}">🚗 Ingreso Vehículos</a>
-    <a class="nav-link {% if menu_active == 'registro' %}active{% endif %}" href="{% url 'talleres:registro_taller' %}">🛠️ Registro Taller</a>
-    <a class="nav-link {% if menu_active == 'reportes' %}active{% endif %}" href="{% url 'reportes:reportes' %}">📊 Reportes</a>
+    <a class="nav-link {% if menu_active == 'inicio' %}active{% endif %}"
+       {% if menu_active == 'inicio' %}aria-current="page"{% endif %}
+       href="{% url 'inicio' %}">🏠 Inicio</a>
+
+    <a class="nav-link {% if menu_active == 'ingreso' %}active{% endif %}"
+       {% if menu_active == 'ingreso' %}aria-current="page"{% endif %}
+       href="{% url 'vehiculos:ingreso_vehiculos' %}">🚗 Ingreso Vehículos</a>
+
+    <a class="nav-link {% if menu_active == 'registro' %}active{% endif %}"
+       {% if menu_active == 'registro' %}aria-current="page"{% endif %}
+       href="{% url 'talleres:registro_taller' %}">🛠️ Registro Taller</a>
+
+    <a class="nav-link {% if menu_active == 'reportes' %}active{% endif %}"
+       {% if menu_active == 'reportes' %}aria-current="page"{% endif %}
+       href="{% url 'reportes:reportes' %}">📊 Reportes</a>
   </nav>
 </div>

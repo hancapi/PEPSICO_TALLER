@@ -1,294 +1,213 @@
-/* ==========================================================
-   ESTILOS GENERALES
-   ========================================================== */
+/* ===================================================================
+   Style — PepsiCo Taller (unificado)
+   =================================================================== */
+
+/* -------------------- Variables -------------------- */
 :root {
   --color-primary: #004b93;
   --color-primary-dark: #003366;
   --color-accent: #ffc72c;
   --color-bg: #f8f9fa;
   --color-text: #333;
-  --radius: 10px;
-  --transition: all 0.3s ease;
+  --radius: 12px;
+  --shadow: 0 4px 14px rgba(0,0,0,.08);
+  --transition: all .2s ease-in-out;
 }
 
+/* -------------------- Base -------------------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
   margin: 0;
-  padding: 0;
-}
-.sidebar .nav-link.active { 
-  font-weight: 600; background: rgba(0,0,0,.05); border-radius: .375rem; 
-}
-
-/* ==========================================================
-   LOGIN
-   ========================================================== */
-.login-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+               Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji",
+               "Segoe UI Symbol", "Noto Color Emoji";
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
-.login-container {
-  background: white;
-  padding: 2rem;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  max-width: 400px;
-  text-align: center;
-}
-
-.logo h2 {
-  color: var(--color-primary);
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.form-control:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 0.2rem rgba(0, 75, 147, 0.25);
-}
-
-.btn-primary {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  transition: var(--transition);
-}
-
-.btn-primary:hover {
-  background-color: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
-}
-
-.alert,
-.loading-spinner {
-  display: none;
-}
-
-#envIndicator {
-  text-align: center;
-  font-size: 0.8rem;
-  margin-top: 0.5rem;
-  color: #666;
-}
-
-/* ==========================================================
-   SIDEBAR / DASHBOARD
-   ========================================================== */
+/* -------------------- Sidebar -------------------- */
 .sidebar {
-  background-color: var(--color-primary);
-  color: white;
-  height: 100vh;
-  width: 250px;
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0 auto 0 0;
+  width: 250px;
+  background: var(--color-primary);
+  color: #fff;
+  z-index: 1000;
+  box-shadow: 2px 0 12px rgba(0,0,0,.1);
 }
 
 .sidebar .nav-link {
-  color: white;
-  padding: 15px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
   transition: var(--transition);
   display: block;
+  text-decoration: none;
 }
 
-.sidebar .nav-link:hover,
-.sidebar .nav-link.active {
-  background-color: var(--color-primary-dark);
+.sidebar .nav-link:hover {
+  background: rgba(255,255,255,.08);
 }
 
 .sidebar .nav-link.active {
+  background: var(--color-primary-dark);
   border-left: 4px solid var(--color-accent);
+  padding-left: 12px;
+  font-weight: 600;
 }
 
-/* ==========================================================
-   CONTENIDO PRINCIPAL
-   ========================================================== */
+/* -------------------- Main content -------------------- */
 .main-content {
-  margin-left: 250px;
+  margin-left: 250px;         /* espacio para la sidebar */
+  min-height: 100vh;
   padding: 20px;
 }
 
-/* ==========================================================
-   CARDS Y ESTADÍSTICAS
-   ========================================================== */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* -------------------- Tarjetas / bloques -------------------- */
 .welcome-card {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
+  color: #fff;
   border-radius: var(--radius);
-  padding: 2rem;
-  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.welcome-title {
+  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: .2px;
 }
 
 .feature-card,
-.stats-card {
+.stats-card,
+.info-empleado-card {
   border: none;
   border-radius: var(--radius);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: var(--transition);
+  box-shadow: var(--shadow);
 }
 
-.feature-card:hover {
-  transform: translateY(-5px);
-}
+.feature-card .card-body { padding: 28px; }
 
 .stats-card {
-  background: white;
-  padding: 1.5rem;
+  background: #fff;
+  padding: 22px;
   text-align: center;
-  margin-bottom: 1rem;
 }
 
 .stat-number {
-  font-size: 2.5rem;
-  font-weight: bold;
   color: var(--color-primary);
-  margin-bottom: 0.5rem;
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 6px;
 }
 
 .stat-label {
   color: #6c757d;
-  font-size: 0.9rem;
   font-weight: 500;
 }
 
-.info-empleado-card {
-  border-left: 4px solid var(--color-primary);
-}
+/* Resaltado lateral de “Mi Información” */
+.info-empleado-card { border-left: 4px solid var(--color-primary); }
 
-/* ==========================================================
-   BADGES / ESTADOS
-   ========================================================== */
-.badge-disponible {
-  background-color: #28a745;
-}
-
-.badge-ocupado {
-  background-color: #ffc107;
-  color: #000;
-}
-
-.badge-ausente {
-  background-color: #dc3545;
-}
-
-.badge-desconocido {
-  background-color: #6c757d;
-}
-
-/* ==========================================================
-   DEBUG / ENTORNO
-   ========================================================== */
-#debug {
-  font-size: 0.8rem;
-  color: #444;
-  margin-top: 10px;
-  background: #f1f1f1;
-  padding: 5px;
-  border-radius: 5px;
-}
-
-/* ==========================================================
-   CALENDARIO DE INGRESO
-   ========================================================== */
+/* -------------------- Agenda / Ingreso -------------------- */
 .calendar-container {
-  background-color: #fff;
-  padding: 20px;
+  background: #fff;
   border-radius: var(--radius);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+  padding: 20px;
 }
 
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
-}
-
-.calendar-day {
-  background-color: #f1f3f5;
-  border: 1px solid #dee2e6;
-  padding: 10px;
-  text-align: center;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.calendar-day:hover {
-  background-color: #e2e6ea;
-}
-
-.calendar-day.ocupado {
-  background-color: #f8d7da;
-  color: #721c24;
-  cursor: not-allowed;
-}
-
-.calendar-day.seleccionado {
-  background-color: var(--color-primary);
-  color: white;
-  font-weight: bold;
-}
-
-.calendar-day.empty {
-  visibility: hidden;
 }
 
 .time-slots {
-  margin-top: 20px;
+  margin-top: 14px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
 .time-slots .btn {
-  min-width: 80px;
-  flex: 1 1 auto;
+  min-width: 84px;
+}
+
+.time-slots .btn.active,
+.time-slots .btn.btn-primary {
+  color: #fff;
 }
 
 .schedule-summary {
-  margin-top: 20px;
-  background-color: #e9ecef;
-  padding: 10px 15px;
-  border-radius: 6px;
-  font-weight: 500;
+  margin-top: 14px;
+  background: #eef2f6;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
 }
 
-/* ==========================================================
-   RESPONSIVE DESIGN
-   ========================================================== */
+/* -------------------- Login -------------------- */
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+.login-container {
+  width: min(400px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0,0,0,.25);
+  padding: 28px;
+}
+
+.logo h2 { color: var(--color-primary); }
+
+/* IMPORTANTE: no ocultar todas las alertas globalmente.
+   Solo la ruedita de carga por defecto. */
+.loading-spinner { display: none; }
+
+/* -------------------- Utilidades -------------------- */
+.badge-disponible { background: #28a745; }
+.badge-ocupado    { background: #ffc107; color: #000; }
+.badge-ausente    { background: #dc3545; }
+.badge-desconocido{ background: #6c757d; }
+
+/* -------------------- Tablas (reportes) -------------------- */
+.table thead th {
+  background: #f3f5f7;
+  border-bottom-color: #e5e7eb;
+  font-weight: 600;
+}
+
+/* -------------------- Responsive -------------------- */
+@media (max-width: 992px) {
+  .main-content { padding: 18px; }
+}
+
 @media (max-width: 768px) {
   .sidebar {
-    position: relative;
+    position: static;
     width: 100%;
     height: auto;
   }
-
   .main-content {
     margin-left: 0;
-    padding: 15px;
-  }
-
-  .calendar-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .login-container {
-    margin: 1rem;
+    padding: 16px;
   }
 }
+/* Reportes: pequeños ajustes visuales */
+.card .form-label { font-weight: 600; }
+.table thead th { position: sticky; top: 0; z-index: 1; }
+.table td, .table th { vertical-align: middle; }
+#tablaCount { display: inline-block; padding-top: .25rem; }
+.stats-card { min-height: 110px; }  /* todas las tarjetas a la misma altura */
