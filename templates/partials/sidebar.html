@@ -1,21 +1,44 @@
-{% comment %}
-Usa: {% include "partials/sidebar.html" with menu_active="inicio|reportes|chat" %}
-{% endcomment %}
-<div class="sidebar">
-  <div class="p-3 text-center border-bottom">
-    <h5 class="mb-0">🚗 Taller PepsiCo Chile</h5>
-  </div>
-  <nav class="nav flex-column p-2">
-    <a class="nav-link {% if menu_active == 'inicio' %}active{% endif %}"
-       {% if menu_active == 'inicio' %}aria-current="page"{% endif %}
-       href="{% url 'inicio' %}">🏠 Inicio</a>
+{% load static %}
+<div class="sidebar d-flex flex-column p-0">
+  <h4 class="px-3 py-3 border-bottom mb-0">🚗 Taller PepsiCo Chile</h4>
 
-    <a class="nav-link {% if menu_active == 'reportes' %}active{% endif %}"
-       {% if menu_active == 'reportes' %}aria-current="page"{% endif %}
-       href="{% url 'reportes:reportes' %}">📊 Reportes</a>
+  <!-- 🔹 Inicio (visible a todos) -->
+  <a href="{% url 'inicio' %}" class="nav-link {% if menu_active == 'inicio' %}active{% endif %}">
+    🔒 Inicio
+  </a>
 
-    <a class="nav-link {% if menu_active == 'chat' %}active{% endif %}"
-       {% if menu_active == 'chat' %}aria-current="page"{% endif %}
-       href="{% url 'chat:chat' %}">💬 Chat</a>
-  </nav>
+  <!-- 🔹 Chat (visible a todos) -->
+  <a href="{% url 'chat:chat' %}" class="nav-link {% if menu_active == 'chat' %}active{% endif %}">
+    💬 Chat
+  </a>
+
+  <!-- 🔹 Registro Taller (SUPERVISOR o MECANICO) -->
+  {% if request.user.is_authenticated %}
+    {% with group=request.user.groups.first.name %}
+      {% if group == 'SUPERVISOR' or group == 'MECANICO' %}
+        <a href="{% url 'talleres:registro_taller' %}" class="nav-link {% if menu_active == 'registro_taller' %}active{% endif %}">
+          🛠️ Registro Taller
+        </a>
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+
+  <!-- 🔹 Ingreso Vehículos (CHOFER o SUPERVISOR) -->
+  {% if request.user.is_authenticated %}
+    {% with group=request.user.groups.first.name %}
+      {% if group == 'CHOFER' or group == 'SUPERVISOR' %}
+        <a href="{% url 'vehiculos:ingreso_vehiculos' %}" class="nav-link {% if menu_active == 'ingreso_vehiculos' %}active{% endif %}">
+          🚗 Ingreso Vehículos
+        </a>
+      {% endif %}
+    {% endwith %}
+  {% endif %}
+
+  <!-- 🔹 Reportes (solo SUPERVISOR) -->
+  {% if request.user.is_authenticated and request.user.groups.first.name == 'SUPERVISOR' %}
+    <a href="{% url 'reportes:reportes' %}" class="nav-link {% if menu_active == 'reportes' %}active{% endif %}">
+      📊 Reportes
+    </a>
+  {% endif %}
 </div>
+

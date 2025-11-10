@@ -15,16 +15,24 @@ from .forms import VehiculoForm
 from talleres.models import Taller
 # from autenticacion.models import Empleado  # <- descomenta si lo usas
 from ordenestrabajo.models import OrdenTrabajo  # KPIs/Historial
+from django.contrib.auth.decorators import login_required, user_passes_test
 
 
 # ==========================================================
 # PÁGINAS
 # ==========================================================
 
+
+def puede_ingresar_vehiculos(user):
+    """Permite acceso a CHOFER o SUPERVISOR."""
+    return user.is_authenticated and user.groups.filter(name__in=['CHOFER', 'SUPERVISOR']).exists()
+
+@login_required(login_url='inicio-sesion')
+@user_passes_test(puede_ingresar_vehiculos, login_url='inicio')
 def ingreso_vehiculos(request):
     """
     Página de Ingreso de Vehículos (form + listado rápido).
-    Normaliza la patente a mayúsculas.
+    Solo CHOFER o SUPERVISOR pueden acceder.
     """
     talleres = Taller.objects.all()
 
@@ -36,7 +44,7 @@ def ingreso_vehiculos(request):
             messages.error(request, "Ya existe un vehículo con esa patente.")
         elif form.is_valid():
             v = form.save(commit=False)
-            v.patente = patente  # normaliza
+            v.patente = patente
             v.save()
             messages.success(request, "Vehículo registrado correctamente.")
             return redirect('vehiculos:ingreso_vehiculos')
@@ -56,6 +64,7 @@ def ingreso_vehiculos(request):
         'talleres': talleres,
     }
     return render(request, 'ingreso-vehiculos.html', context)
+
 
 
 def ficha_vehiculo(request, patente: str = None):

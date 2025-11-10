@@ -5,8 +5,10 @@ from django.views.decorators.http import require_GET
 from ordenestrabajo.models import OrdenTrabajo
 from vehiculos.models import Vehiculo
 from autenticacion.models import Empleado
+from common.decorators import role_required
 
 # Página
+@role_required(["SUPERVISOR"])
 def reportes_page(request):
     return render(request, 'reportes.html')
 
