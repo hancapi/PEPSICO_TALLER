@@ -299,17 +299,28 @@ def ingreso_create_api(request):
 @require_http_methods(["GET"])
 def ingresos_en_curso_api(request):
     """
-    GET /api/ordenestrabajo/api/ingresos/en-curso/?patente=ABC123&fecha=YYYY-MM-DD (fecha opcional)
-    Retorna OTs con estado en curso (Pendiente / En Proceso).
+    GET /api/ordenestrabajo/api/ingresos/en-curso/
+      Filtros opcionales:
+        - patente=ABC123
+        - taller_id=1
+        - fecha=YYYY-MM-DD
+      Retorna OTs con estado en curso (Pendiente / En Proceso).
     """
     try:
-        patente = (request.GET.get('patente') or '').strip()
+        patente   = (request.GET.get('patente') or '').strip()
         fecha_str = (request.GET.get('fecha') or '').strip()
+        taller_id = (request.GET.get('taller_id') or '').strip()
 
-        if not patente:
-            return JsonResponse({'success': False, 'message': 'Parámetro patente requerido'}, status=400)
+        qs = OrdenTrabajo.objects.filter(estado__in=ESTADOS_EN_CURSO)
 
-        qs = OrdenTrabajo.objects.filter(patente_id=patente, estado__in=ESTADOS_EN_CURSO)
+        if patente:
+            qs = qs.filter(patente_id=patente)
+
+        if taller_id:
+            try:
+                qs = qs.filter(taller_id=int(taller_id))
+            except ValueError:
+                return JsonResponse({'success': False, 'message': 'taller_id inválido'}, status=400)
 
         if fecha_str:
             try:
@@ -318,21 +329,23 @@ def ingresos_en_curso_api(request):
             except ValueError:
                 return JsonResponse({'success': False, 'message': 'Formato de fecha inválido'}, status=400)
 
-        data = [{
+        items = [{
             'id': ot.ot_id,
-            'fecha': ot.fecha_ingreso.strftime('%Y-%m-%d'),
+            'patente': ot.patente_id,
+            'fecha': ot.fecha_ingreso.strftime('%Y-%m-%d') if ot.fecha_ingreso else None,
             'hora': ot.hora_ingreso.strftime('%H:%M') if ot.hora_ingreso else None,
             'estado': ot.estado,
             'taller_id': ot.taller_id,
             'rut': getattr(ot.rut, 'rut', ot.rut_id),
             'rut_creador': getattr(ot.rut_creador, 'rut', None),
             'descripcion': ot.descripcion,
-        } for ot in qs.order_by('-fecha_ingreso', '-hora_ingreso')]
+        } for ot in qs.order_by('-fecha_ingreso', '-hora_ingreso', '-ot_id')]
 
-        return JsonResponse({'success': True, 'items': data})
+        return JsonResponse({'success': True, 'items': items})
     except Exception as e:
         logger.exception("Error en ingresos_en_curso_api")
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
+
 
 @csrf_exempt
 @require_http_methods(["POST", "PATCH"])

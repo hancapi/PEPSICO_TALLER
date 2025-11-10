@@ -2,123 +2,83 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Registro Taller - Pausas OT</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>Registro Taller - PepsiCo Chile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}"/>
 </head>
-<body class="p-3">
-  <h3 class="mb-3">Registro Taller – Control de Pausas</h3>
+<body>
+  {% include "partials/sidebar.html" with menu_active="registro" %}
 
-  <div class="card mb-3">
-    <div class="card-body">
-      <form id="formBuscarOT" class="row g-2">
-        <div class="col-sm-3">
-          <label class="form-label">OT ID</label>
-          <input type="number" class="form-control" id="otId" placeholder="Ingrese OT ID" required>
-        </div>
-        <div class="col-sm-3 d-flex align-items-end">
-          <button class="btn btn-primary">Cargar</button>
-        </div>
-      </form>
+  <div class="main-content p-3">
+    <div class="row mb-3">
+      <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+        <a href="/inicio-sesion/" class="btn btn-outline-danger" id="logoutButton">🔒 Cerrar Sesión</a>
+      </div>
+    </div>
 
-      <hr>
+    <div class="page-header welcome-card mb-3">
+      <h1 class="mb-1">🛠️ Registro del Taller</h1>
+      <p class="mb-0">Lista y gestiona las órdenes en curso de tu taller.</p>
+    </div>
 
-      <div id="accionesPausa" style="display:none">
-        <div class="row g-2">
-          <div class="col-sm-6">
-            <label class="form-label">Motivo</label>
-            <input type="text" class="form-control" id="motivoPausa" placeholder="Ej: Espera repuesto">
+    <!-- Filtros -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label" for="fecha">Fecha</label>
+            <input type="date" id="fecha" class="form-control" />
           </div>
-          <div class="col-sm-6 d-flex align-items-end gap-2">
-            <button class="btn btn-warning" id="btnStart">⏸ Iniciar pausa</button>
-            <button class="btn btn-success" id="btnStop">▶ Reanudar</button>
-            <button class="btn btn-outline-secondary" id="btnRefresh">🔄 Actualizar lista</button>
+          <div class="col-md-3">
+            <label class="form-label" for="tallerId">Taller</label>
+            <select id="tallerId" class="form-select">
+              <option value="1">Taller 1</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-outline-primary w-100" id="btnBuscar">🔎 Buscar</button>
+          </div>
+          <div class="col-md-3 text-end">
+            <span class="badge bg-secondary" id="badgeCount">0 en curso</span>
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="mt-4" id="panelPausas" style="display:none">
-        <h6 class="mb-2">Pausas registradas</h6>
-        <table class="table table-sm table-striped">
-          <thead class="table-light">
+    <!-- Alertas -->
+    <div id="okBox"  class="alert alert-success d-none" role="alert">OK</div>
+    <div id="errBox" class="alert alert-danger  d-none" role="alert">Error</div>
+
+    <!-- Tabla -->
+    <div class="card">
+      <div class="card-body table-responsive">
+        <table class="table table-hover align-middle mb-0" id="tablaOTs">
+          <thead>
             <tr>
-              <th>#</th><th>Motivo</th><th>Inicio</th><th>Fin</th><th>Activa</th>
+              <th>#</th>
+              <th>Patente</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Estado</th>
+              <th>Responsable</th>
+              <th>Creado por</th>
+              <th>Descripción</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
-          <tbody id="tbodyPausas"></tbody>
+          <tbody>
+            <tr><td colspan="9" class="text-muted">Sin datos</td></tr>
+          </tbody>
         </table>
-        <div class="small text-muted" id="msgPausas"></div>
       </div>
     </div>
   </div>
 
   <script src="{% static 'js/auth.js' %}"></script>
-  <script src="{% static 'js/pausas.js' %}"></script>
-  <script>
-    let currentOtId = null;
-
-    function renderPausas(pausas) {
-      const tb = document.getElementById('tbodyPausas');
-      tb.innerHTML = '';
-      if (!pausas || !pausas.length) {
-        document.getElementById('msgPausas').textContent = 'No hay pausas registradas.';
-        return;
-      }
-      document.getElementById('msgPausas').textContent = '';
-      pausas.forEach((p, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${i+1}</td>
-          <td>${p.motivo || '-'}</td>
-          <td>${p.inicio ? new Date(p.inicio).toLocaleString() : '-'}</td>
-          <td>${p.fin ? new Date(p.fin).toLocaleString() : '-'}</td>
-          <td>${p.activo ? '<span class="badge bg-warning text-dark">Sí</span>' : 'No'}</td>
-        `;
-        tb.appendChild(tr);
-      });
-    }
-
-    async function cargarPausas(otId) {
-      try {
-        const pausas = await pausaList(otId);
-        renderPausas(pausas);
-        document.getElementById('panelPausas').style.display = 'block';
-      } catch (e) {
-        alert(e.message);
-      }
-    }
-
-    document.getElementById('formBuscarOT').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const id = Number(document.getElementById('otId').value);
-      if (!id) return;
-      currentOtId = id;
-      document.getElementById('accionesPausa').style.display = 'block';
-      await cargarPausas(currentOtId);
-    });
-
-    document.getElementById('btnStart').addEventListener('click', async () => {
-      if (!currentOtId) return alert('Primero cargue la OT');
-      const motivo = document.getElementById('motivoPausa').value.trim() || 'Pausa iniciada';
-      try {
-        await pausaStart(currentOtId, motivo);
-        await cargarPausas(currentOtId);
-      } catch (e) { alert(e.message); }
-    });
-
-    document.getElementById('btnStop').addEventListener('click', async () => {
-      if (!currentOtId) return alert('Primero cargue la OT');
-      try {
-        await pausaStop(currentOtId);
-        await cargarPausas(currentOtId);
-      } catch (e) { alert(e.message); }
-    });
-
-    document.getElementById('btnRefresh').addEventListener('click', async () => {
-      if (currentOtId) await cargarPausas(currentOtId);
-    });
-  </script>
-  <script src="{% load static %}{% static 'js/auth.js' %}"></script>\
-  <script src="{% static 'js/pausas.js' %}"></script>
+  <script src="{% static 'js/registro_taller.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
