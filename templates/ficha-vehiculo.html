@@ -1,576 +1,150 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <!-- METADATOS Y CONFIGURACIÓN -->
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ficha Vehículo - Taller PepsiCo</title>
-
-    <!-- BOOTSTRAP CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- ESTILOS PERSONALIZADOS -->
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-
-        .sidebar {
-            background-color: #004B93;
-            color: white;
-            height: 100vh;
-            position: fixed;
-            width: 250px;
-        }
-
-        .sidebar .nav-link {
-            color: white;
-            padding: 15px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar .nav-link:hover {
-            background-color: #003366;
-        }
-
-        .sidebar .nav-link.active {
-            background-color: #003366 !important;
-            border-left: 4px solid #FFC72C;
-        }
-
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
-        }
-
-        .page-header {
-            background: linear-gradient(135deg, #004B93 0%, #002D62 100%);
-            color: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .info-card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
-
-        .table-card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        .status-pausado {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .status-proceso {
-            background-color: #cce7ff;
-            color: #004085;
-        }
-
-        .status-terminado {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .file-badge {
-            background-color: #e9ecef;
-            color: #495057;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        .file-badge:hover {
-            background-color: #dde1e6;
-        }
-
-        .search-section {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
-
-        .vehicle-data {
-            display: none;
-        }
-
-        .documents-section {
-            margin-top: 2rem;
-        }
-
-        .document-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-            background: white;
-            transition: all 0.3s;
-        }
-
-        .document-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .document-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-        }
-
-        .document-icon {
-            font-size: 1.5rem;
-        }
-
-        .document-details {
-            flex: 1;
-        }
-
-        .document-meta {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-
-        .no-documents {
-            text-align: center;
-            padding: 2rem;
-            color: #6c757d;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Ficha de Vehículo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}"/>
 </head>
-
 <body>
-    <!-- BARRA LATERAL DE NAVEGACIÓN -->
-    <div class="sidebar">
-        <!-- LOGO Y NOMBRE DE LA EMPRESA -->
-        <div class="p-3 text-center border-bottom">
-            <h5>Taller PepsiCo Chile</h5>
-        </div>
-        <!-- MENÚ DE NAVEGACIÓN -->
-        <nav class="nav flex-column">
-            <a class="nav-link" href="inicio.html">
-                🏠 Inicio
-            </a>
-            <a class="nav-link" href="ingreso-vehiculos.html">
-                🚗 Ingreso Vehículos
-            </a>
-            <a class="nav-link" href="reportes.html">
-                📊 Reportes
-            </a>
-            <a class="nav-link" href="#">
-                💬 Chat
-            </a>
-        </nav>
+  {% include "partials/sidebar.html" with menu_active="ingreso" %}
+
+  <div class="main-content p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="mb-0">📄 Ficha de Vehículo</h1>
+      <form class="d-flex gap-2" id="formBuscar">
+        <input class="form-control" id="patenteInput" placeholder="Patente (p.e. ABCZ12)" value="{{ patente|default:'' }}">
+        <button class="btn btn-primary" type="submit">Buscar</button>
+      </form>
     </div>
 
-    <!-- CONTENIDO PRINCIPAL -->
-    <div class="main-content">
-        <!-- BARRA SUPERIOR CON BOTÓN CERRAR SESIÓN -->
-        <div class="row mb-4">
-            <div class="col-12 text-end">
-                <a href="inicio-sesion.html" class="btn btn-outline-danger">
-                    🔒 Cerrar Sesión
-                </a>
-            </div>
+    <!-- Encabezado / info vehículo -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div id="vehiculoNoEncontrado" class="alert alert-warning d-none mb-3">No se encontró la patente indicada.</div>
+        <div class="row g-3" id="vehiculoInfo" style="display:none;">
+          <div class="col-md-3">
+            <div class="small text-muted">Patente</div>
+            <div class="fw-semibold" id="v_patente">—</div>
+          </div>
+          <div class="col-md-3">
+            <div class="small text-muted">Marca / Modelo</div>
+            <div class="fw-semibold" id="v_marca_modelo">—</div>
+          </div>
+          <div class="col-md-2">
+            <div class="small text-muted">Año</div>
+            <div class="fw-semibold" id="v_anio">—</div>
+          </div>
+          <div class="col-md-2">
+            <div class="small text-muted">Tipo</div>
+            <div class="fw-semibold" id="v_tipo">—</div>
+          </div>
+          <div class="col-md-2">
+            <div class="small text-muted">Ubicación</div>
+            <div class="fw-semibold" id="v_ubicacion">—</div>
+          </div>
+          <div class="col-md-2">
+            <div class="small text-muted">Estado</div>
+            <span class="badge bg-secondary" id="v_estado">—</span>
+          </div>
         </div>
-
-        <!-- ENCABEZADO DE LA PÁGINA -->
-        <div class="page-header">
-            <h1>📋 Ficha Vehículo</h1>
-            <p class="mb-0">Gestión detallada del vehículo en taller</p>
-        </div>
-
-        <!-- SECCIÓN DE BÚSQUEDA POR PATENTE -->
-        <div class="search-section">
-            <h5 class="mb-3">Buscar Vehículo por Patente</h5>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="patenteBusqueda"
-                            placeholder="Ingresa la patente del vehículo" maxlength="8">
-                        <button class="btn btn-primary" onclick="buscarVehiculo()">
-                            🔍 Buscar
-                        </button>
-                    </div>
-                    <div class="form-text">Máximo 8 caracteres</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SECCIÓN DE DATOS DEL VEHÍCULO (SE MUESTRA DESPUÉS DE LA BÚSQUEDA) -->
-        <div class="vehicle-data" id="datosVehiculo">
-            <!-- TARJETA CON DATOS PRINCIPALES DEL VEHÍCULO -->
-            <div class="card info-card">
-                <div class="card-body">
-                    <h5 class="card-title mb-4">Datos del Vehículo</h5>
-
-                    <div class="row">
-                        <!-- PATENTE DEL VEHÍCULO -->
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label fw-bold">Patente</label>
-                            <p class="form-control-plaintext" id="patenteMostrada">-</p>
-                        </div>
-                        <!-- MODELO DEL VEHÍCULO -->
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label fw-bold">Modelo</label>
-                            <p class="form-control-plaintext" id="modeloMostrado">-</p>
-                        </div>
-                        <!-- ESTADO ACTUAL DEL VEHÍCULO -->
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label fw-bold">Estado Actual</label>
-                            <span class="status-badge status-pausado" id="estadoMostrado">-</span>
-                        </div>
-                    </div>
-
-                    <!-- BARRA DE ACCIONES DEL CASO -->
-                    <div class="row mt-3">
-                        <div class="col-md-12">
-                            <label class="form-label fw-bold">Acciones del Caso</label>
-                            <div class="d-flex gap-2 flex-wrap">
-                                <select class="form-select" id="accionCaso" style="max-width: 200px;">
-                                    <option value="">Seleccionar acción...</option>
-                                    <option value="tomar">Tomar Caso</option>
-                                    <option value="pausar">Pausar Caso</option>
-                                    <option value="terminar">Terminar Caso</option>
-                                </select>
-                                <small class="text-muted">La acción se guardará al hacer clic en "Registrar
-                                    Información"</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- HISTORIAL DE INGRESOS AL TALLER -->
-            <div class="card table-card">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Historial: Ingreso al Taller</h5>
-                    <span class="badge bg-primary" id="contadorHistorial">0 registros</span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Encargo</th>
-                                    <th>Descripción</th>
-                                    <th>Estado</th>
-                                    <th>Documentos</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaHistorial">
-                                <!-- Los datos se llenarán automáticamente -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DOCUMENTOS ASOCIADOS AL VEHÍCULO -->
-            <div class="card table-card documents-section">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">📎 Documentos Asociados</h5>
-                    <span class="badge bg-success" id="contadorDocumentos">0 documentos</span>
-                </div>
-                <div class="card-body">
-                    <div id="listaDocumentos">
-                        <div class="no-documents" id="noDocuments">
-                            <div class="document-icon">📁</div>
-                            <h6>No hay documentos asociados</h6>
-                            <p>Los documentos subidos para este vehículo aparecerán aquí</p>
-                            <button class="btn btn-outline-primary btn-sm" onclick="irASubirDocumentos()">
-                                📎 Subir Documentos
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- BOTONES DE ACCIÓN FINALES -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="d-flex gap-2 justify-content-end flex-wrap">
-                        <button class="btn btn-success" onclick="irASubirDocumentos()">
-                            📎 Subir Documentos
-                        </button>
-                        <button class="btn btn-info text-white">
-                            📊 Ver Reporte
-                        </button>
-                        <button class="btn btn-warning" onclick="registrarInformacion()">
-                            ✏️ Registrar Información
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <!-- SCRIPTS JAVASCRIPT -->
-    <script>
-        // SIMULACIÓN DE BASE DE DATOS DE VEHÍCULOS
-        const vehiculosDB = {
-            'AB123CD': {
-                patente: 'AB123CD',
-                modelo: 'Toyota Hilux 2022',
-                estado: 'Pausado',
-                historial: [
-                    { fecha: '15/03/2024', encargo: 'Mantención Preventiva', descripcion: 'Cambio de aceite y filtros programado', estado: 'terminado', documento: 'informe_mantencion.doc' },
-                    { fecha: '20/03/2024', encargo: 'Reparación Frenos', descripcion: 'Revisión completa del sistema de frenos', estado: 'pausado', documento: 'diagnostico_frenos.doc' },
-                    { fecha: '25/03/2024', encargo: 'Revisión Motor', descripcion: 'Análisis de rendimiento y consumo', estado: 'proceso', documento: 'reporte_motor.doc' }
-                ]
-            },
-            'XY789ZW': {
-                patente: 'XY789ZW',
-                modelo: 'Chevrolet Corsa 2021',
-                estado: 'En Proceso',
-                historial: [
-                    { fecha: '10/03/2024', encargo: 'Revisión General', descripcion: 'Revisión completa del vehículo', estado: 'terminado', documento: 'revision_general.doc' }
-                ]
-            }
-        };
+    <!-- KPIs + OT actual -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stat-number" id="kpi_ots">0</div>
+          <div class="stat-label">OTs totales</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stat-number" id="kpi_incidentes">0</div>
+          <div class="stat-label">Incidentes</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stat-number" id="kpi_prestamos">0</div>
+          <div class="stat-label">Préstamos</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stat-number" id="kpi_llave">—</div>
+          <div class="stat-label">Llave</div>
+        </div>
+      </div>
+    </div>
 
-        // SIMULACIÓN DE BASE DE DATOS DE DOCUMENTOS
-        const documentosDB = {
-            'AB123CD': [
-                {
-                    nombre: 'informe_mantencion.doc',
-                    tipo: 'documento',
-                    tamaño: '2.4 MB',
-                    fechaSubida: '15/03/2024',
-                    encargado: 'Juan Pérez',
-                    estado: 'Aprobado',
-                    descripcion: 'Informe completo de mantención preventiva realizada'
-                },
-                {
-                    nombre: 'diagnostico_frenos.pdf',
-                    tipo: 'pdf',
-                    tamaño: '1.8 MB',
-                    fechaSubida: '20/03/2024',
-                    encargado: 'María González',
-                    estado: 'En Revisión',
-                    descripcion: 'Diagnóstico del sistema de frenos con recomendaciones'
-                },
-                {
-                    nombre: 'fotos_suspension.jpg',
-                    tipo: 'imagen',
-                    tamaño: '4.2 MB',
-                    fechaSubida: '22/03/2024',
-                    encargado: 'Carlos López',
-                    estado: 'Finalizado',
-                    descripcion: 'Fotografías del estado de la suspensión'
-                }
-            ],
-            'XY789ZW': [
-                {
-                    nombre: 'revision_general.pdf',
-                    tipo: 'pdf',
-                    tamaño: '3.1 MB',
-                    fechaSubida: '10/03/2024',
-                    encargado: 'Ana Silva',
-                    estado: 'Aprobado',
-                    descripcion: 'Reporte de revisión general del vehículo'
-                }
-            ]
-        };
+    <div class="card mb-4" id="otActualCard" style="display:none;">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-1">🟢 OT en curso</h5>
+          <div class="small text-muted" id="otActualMeta">—</div>
+        </div>
+        <span class="badge bg-info" id="otActualEstado">—</span>
+      </div>
+    </div>
 
-        // Variable global para almacenar la patente actual
-        let patenteActual = '';
+    <!-- Historial OTs -->
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+          <div>
+            <label class="form-label">Desde</label>
+            <input type="date" class="form-control" id="fromDate">
+          </div>
+          <div>
+            <label class="form-label">Hasta</label>
+            <input type="date" class="form-control" id="toDate">
+          </div>
+          <div>
+            <label class="form-label">Estado</label>
+            <select class="form-select" id="fltEstado">
+              <option value="">(Todos)</option>
+              <option>Pendiente</option>
+              <option>En Proceso</option>
+              <option>Finalizado</option>
+              <option>Cancelado</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Taller (ID o nombre)</label>
+            <input class="form-control" id="fltTaller" placeholder="1 / Maipú">
+          </div>
+          <button class="btn btn-outline-primary" id="btnFiltrar">Aplicar</button>
+          <button class="btn btn-outline-secondary" id="btnLimpiar">Limpiar</button>
+          <div class="ms-auto small text-muted" id="tablaCount"></div>
+        </div>
 
-        // FUNCIÓN PARA BUSCAR VEHÍCULO POR PATENTE
-        function buscarVehiculo() {
-            const patente = document.getElementById('patenteBusqueda').value.toUpperCase();
-            const datosDiv = document.getElementById('datosVehiculo');
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle">
+            <thead>
+              <tr>
+                <th>#OT</th>
+                <th>Fecha/Hora</th>
+                <th>Taller</th>
+                <th>Estado</th>
+                <th>Responsable</th>
+                <th>Creador</th>
+              </tr>
+            </thead>
+            <tbody id="tablaOtsBody">
+              <tr><td colspan="6" class="text-muted">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            if (!patente) {
-                alert('Por favor ingresa una patente');
-                return;
-            }
-
-            if (vehiculosDB[patente]) {
-                // Guardar la patente actual
-                patenteActual = patente;
-
-                // Mostrar datos del vehículo
-                const vehiculo = vehiculosDB[patente];
-                document.getElementById('patenteMostrada').textContent = vehiculo.patente;
-                document.getElementById('modeloMostrado').textContent = vehiculo.modelo;
-                document.getElementById('estadoMostrado').textContent = vehiculo.estado;
-
-                // Actualizar clase de estado
-                const estadoBadge = document.getElementById('estadoMostrado');
-                estadoBadge.className = 'status-badge ';
-                if (vehiculo.estado.includes('Pausado')) estadoBadge.classList.add('status-pausado');
-                else if (vehiculo.estado.includes('Proceso')) estadoBadge.classList.add('status-proceso');
-                else estadoBadge.classList.add('status-terminado');
-
-                // Llenar tabla de historial
-                llenarTablaHistorial(vehiculo.historial);
-
-                // Llenar lista de documentos
-                llenarListaDocumentos(patente);
-
-                // Mostrar sección de datos
-                datosDiv.style.display = 'block';
-            } else {
-                alert('Vehículo no encontrado. Patentes disponibles: AB123CD, XY789ZW');
-                datosDiv.style.display = 'none';
-                patenteActual = '';
-            }
-        }
-
-        // FUNCIÓN PARA LLENAR LA TABLA DE HISTORIAL
-        function llenarTablaHistorial(historial) {
-            const tbody = document.getElementById('tablaHistorial');
-            const contador = document.getElementById('contadorHistorial');
-
-            tbody.innerHTML = '';
-            contador.textContent = `${historial.length} registros`;
-
-            historial.forEach(item => {
-                const fila = document.createElement('tr');
-
-                let claseEstado = 'status-badge ';
-                if (item.estado === 'pausado') claseEstado += 'status-pausado';
-                else if (item.estado === 'proceso') claseEstado += 'status-proceso';
-                else claseEstado += 'status-terminado';
-
-                let textoEstado = item.estado === 'pausado' ? 'Pausado' :
-                    item.estado === 'proceso' ? 'En Proceso' : 'Terminado';
-
-                fila.innerHTML = `
-                    <td>${item.fecha}</td>
-                    <td>${item.encargo}</td>
-                    <td>${item.descripcion}</td>
-                    <td><span class="${claseEstado}">${textoEstado}</span></td>
-                    <td>
-                        <span class="file-badge" onclick="descargarDocumento('${item.documento}')">
-                            📄 ${item.documento}
-                        </span>
-                    </td>
-                `;
-
-                tbody.appendChild(fila);
-            });
-        }
-
-        // FUNCIÓN PARA LLENAR LA LISTA DE DOCUMENTOS
-        function llenarListaDocumentos(patente) {
-            const listaDocumentos = document.getElementById('listaDocumentos');
-            const contador = document.getElementById('contadorDocumentos');
-            const noDocuments = document.getElementById('noDocuments');
-
-            const documentos = documentosDB[patente] || [];
-
-            if (documentos.length === 0) {
-                noDocuments.style.display = 'block';
-                listaDocumentos.innerHTML = '';
-                listaDocumentos.appendChild(noDocuments);
-                contador.textContent = '0 documentos';
-                return;
-            }
-
-            noDocuments.style.display = 'none';
-            listaDocumentos.innerHTML = '';
-            contador.textContent = `${documentos.length} documentos`;
-
-            documentos.forEach(doc => {
-                const docElement = document.createElement('div');
-                docElement.className = 'document-item';
-
-                let icono = '📄';
-                if (doc.tipo === 'pdf') icono = '📕';
-                else if (doc.tipo === 'imagen') icono = '🖼️';
-                else if (doc.tipo === 'documento') icono = '📄';
-
-                let estadoClase = '';
-                if (doc.estado === 'Aprobado') estadoClase = 'status-badge status-terminado';
-                else if (doc.estado === 'En Revisión') estadoClase = 'status-badge status-proceso';
-                else estadoClase = 'status-badge status-pausado';
-
-                docElement.innerHTML = `
-                    <div class="document-info">
-                        <div class="document-icon">${icono}</div>
-                        <div class="document-details">
-                            <strong>${doc.nombre}</strong>
-                            <div class="document-meta">
-                                Subido: ${doc.fechaSubida} | Tamaño: ${doc.tamaño} | Encargado: ${doc.encargado}
-                            </div>
-                            <small>${doc.descripcion}</small>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="${estadoClase}">${doc.estado}</span>
-                        <button class="btn btn-sm btn-outline-primary" onclick="descargarDocumento('${doc.nombre}')">
-                            📥 Descargar
-                        </button>
-                        <button class="btn btn-sm btn-outline-info" onclick="verDocumento('${doc.nombre}')">
-                            👁️ Ver
-                        </button>
-                    </div>
-                `;
-
-                listaDocumentos.appendChild(docElement);
-            });
-        }
-
-        // FUNCIÓN PARA DESCARGAR DOCUMENTO
-        function descargarDocumento(nombreArchivo) {
-            alert(`Descargando archivo: ${nombreArchivo}`);
-            // En una aplicación real, aquí iría la lógica de descarga
-        }
-
-        // FUNCIÓN PARA VER DOCUMENTO
-        function verDocumento(nombreArchivo) {
-            alert(`Abriendo archivo: ${nombreArchivo}`);
-            // En una aplicación real, aquí iría la lógica para ver el documento
-        }
-
-        // FUNCIÓN PARA REDIRIGIR A SUBIR DOCUMENTOS
-        function irASubirDocumentos() {
-            if (patenteActual) {
-                // Redirigir a subir documentos con la patente pre-cargada
-                window.location.href = `subir-documentos.html?patente=${patenteActual}`;
-            } else {
-                // Si no hay patente seleccionada, redirigir sin parámetros
-                window.location.href = 'subir-documentos.html';
-            }
-        }
-
-        // FUNCIÓN PARA REGISTRAR INFORMACIÓN
-        function registrarInformacion() {
-            const accion = document.getElementById('accionCaso').value;
-            if (accion) {
-                alert(`Información registrada correctamente.\nAcción aplicada: ${accion}`);
-            } else {
-                alert('Información registrada correctamente');
-            }
-        }
-    </script>
-
-    <!-- SCRIPTS DE BOOTSTRAP -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'js/ficha_vehiculo.js' %}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>
+

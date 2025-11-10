@@ -21,6 +21,7 @@ class OrdenTrabajoSerializer(serializers.ModelSerializer):
             'estado',
             'patente',
             'taller',
-            'empleado',
+            'rut',        # ✅ reemplaza "empleado" por "rut"
             'repuestos'
         ]
+

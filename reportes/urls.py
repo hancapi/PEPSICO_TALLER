@@ -1,8 +1,10 @@
+# reportes/urls.py
 from django.urls import path
-from django.views.generic import TemplateView
+from . import views
 
 app_name = 'reportes'
-
 urlpatterns = [
-    path('', TemplateView.as_view(template_name='reportes.html'), name='reportes'),
+    path('', views.reportes_page, name='reportes'),
+    path('api/summary/', views.api_summary, name='api_summary'),
+    path('api/ots/', views.api_ots, name='api_ots'),
 ]

@@ -1,4 +1,4 @@
-// dashboard.js 
+// static/js/dashboard.js 
 async function loadDashboardStats() {
     try {
         const res = await fetch('/api/autenticacion/dashboard-stats/');

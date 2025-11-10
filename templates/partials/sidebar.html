@@ -1,0 +1,21 @@
+{% comment %}
+Usa: {% include "partials/sidebar.html" with menu_active="inicio|reportes|chat" %}
+{% endcomment %}
+<div class="sidebar">
+  <div class="p-3 text-center border-bottom">
+    <h5 class="mb-0">🚗 Taller PepsiCo Chile</h5>
+  </div>
+  <nav class="nav flex-column p-2">
+    <a class="nav-link {% if menu_active == 'inicio' %}active{% endif %}"
+       {% if menu_active == 'inicio' %}aria-current="page"{% endif %}
+       href="{% url 'inicio' %}">🏠 Inicio</a>
+
+    <a class="nav-link {% if menu_active == 'reportes' %}active{% endif %}"
+       {% if menu_active == 'reportes' %}aria-current="page"{% endif %}
+       href="{% url 'reportes:reportes' %}">📊 Reportes</a>
+
+    <a class="nav-link {% if menu_active == 'chat' %}active{% endif %}"
+       {% if menu_active == 'chat' %}aria-current="page"{% endif %}
+       href="{% url 'chat:chat' %}">💬 Chat</a>
+  </nav>
+</div>

@@ -1,28 +1,14 @@
 # autenticacion/admin.py
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import Empleado
+from autenticacion.models import Empleado, Taller
+
+@admin.register(Taller)
+class TallerAdmin(admin.ModelAdmin):
+    list_display = ('taller_id', 'nombre', 'ubicacion', 'encargado_taller')
+    search_fields = ('nombre', 'ubicacion')
 
 @admin.register(Empleado)
-class EmpleadoAdmin(UserAdmin):
-    model = Empleado
-    list_display = ('rut', 'usuario', 'nombre', 'cargo', 'region', 'is_active', 'is_staff')
-    search_fields = ('rut', 'usuario', 'nombre')
-    ordering = ('rut',)
-    
-    # ✅ SOLUCIÓN: Agregar esta línea
-    readonly_fields = ('last_login',)
-
-    fieldsets = (
-        (None, {'fields': ('rut', 'usuario', 'password')}),
-        ('Información personal', {'fields': ('nombre', 'cargo', 'region', 'horario', 'disponibilidad', 'taller')}),
-        ('Permisos', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Fechas importantes', {'fields': ('last_login',)}),
-    )
-
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('rut', 'usuario', 'password1', 'password2', 'nombre', 'cargo', 'region', 'taller', 'is_active', 'is_staff', 'is_superuser'),
-        }),
-    )
+class EmpleadoAdmin(admin.ModelAdmin):
+    list_display = ('rut', 'usuario', 'nombre', 'cargo', 'taller', 'is_active', 'is_staff', 'is_superuser', 'last_login')
+    list_filter = ('is_active', 'is_staff', 'is_superuser', 'taller')
+    search_fields = ('rut', 'usuario', 'nombre', 'cargo')

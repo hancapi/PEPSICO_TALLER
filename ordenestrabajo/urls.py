@@ -1,14 +1,22 @@
-#ordenestrabajo/urls.py
 from django.urls import path
-from .views import registrar_ingreso, OrdenTrabajoViewSet, horarios_ocupados
-from rest_framework.routers import DefaultRouter
+from . import views
 
 app_name = 'ordenestrabajo'
 
-router = DefaultRouter()
-router.register(r'ordenestrabajo', OrdenTrabajoViewSet)
+urlpatterns = [
+    # Pausas
+    path('<int:ot_id>/pausas/start/', views.pausa_start, name='pausa-start'),
+    path('<int:ot_id>/pausas/stop/', views.pausa_stop, name='pausa-stop'),
+    path('<int:ot_id>/pausas/', views.pausa_list, name='pausa-list'),
 
-urlpatterns = router.urls + [
-    path('horarios/', horarios_ocupados, name='horarios_ocupados'),
-    path('registrar/', registrar_ingreso, name='registrar_ingreso'),
+    # Agenda / Ingresos
+    path('api/agenda/slots/', views.agenda_slots_api, name='agenda_slots_api'),
+    path('api/ingresos/create/', views.ingreso_create_api, name='ingreso_create_api'),
+    path('api/ingresos/en-curso/', views.ingresos_en_curso_api, name='ingresos_en_curso_api'),
+    path('api/ingresos/<int:ot_id>/finalizar/', views.ingreso_finalizar_api, name='ingreso_finalizar_api'),
+    path('api/ingresos/<int:ot_id>/cancelar/', views.ingreso_cancelar_api, name='ingreso_cancelar_api'),
+
+    # whoami (para mostrar rut/usuario autenticado en el front)
+    path('api/whoami/', views.whoami, name='whoami'),
 ]
+
