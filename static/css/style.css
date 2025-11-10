@@ -211,3 +211,20 @@ body {
 .table td, .table th { vertical-align: middle; }
 #tablaCount { display: inline-block; padding-top: .25rem; }
 .stats-card { min-height: 110px; }  /* todas las tarjetas a la misma altura */
+
+/* Botón uniforme para tarjetas */
+.feature-card .btn {
+  min-width: 120px;
+  font-weight: 600;
+}
+
+/* Por si en otro lugar se te cuela un outline, lo normalizamos aquí */
+.feature-card .btn-outline-primary {
+  background-color: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.feature-card .btn-outline-primary:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}

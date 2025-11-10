@@ -18,6 +18,7 @@ urlpatterns = [
     path('ingreso-vehiculos/', TemplateView.as_view(template_name='ingreso-vehiculos.html'), name='ingreso-vehiculos'),
     path('ficha-vehiculo/', TemplateView.as_view(template_name='ficha-vehiculo.html'), name='ficha-vehiculo'),
     path('reportes/', TemplateView.as_view(template_name='reportes.html'), name='reportes'),
+    path('chat/', include('chat.urls')),   
 
     # Apps “clásicas”
     path('vehiculos/', include('vehiculos.urls', namespace='vehiculos')),

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'reportes',
     'documentos',
     'ordenestrabajo',
+    'chat',
     'utils',
 ]
 
