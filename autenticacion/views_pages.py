@@ -108,9 +108,6 @@ def ingreso_vehiculos_page(request):
     talleres = Taller.objects.all().order_by('nombre')
     vehiculos = Vehiculo.objects.all().order_by('patente')
 
-    # ======================================================
-    # POST TRADICIONAL
-    # ======================================================
     if request.method == "POST":
         patente = (request.POST.get("patente") or "").strip().upper()
         taller_id = request.POST.get("taller_id") or None
@@ -134,7 +131,6 @@ def ingreso_vehiculos_page(request):
             messages.error(request, "Datos inválidos.")
             return redirect("ingreso-vehiculos")
 
-        # OT activa previa
         ot_activa = OrdenTrabajo.objects.filter(
             patente=vehiculo,
             estado__in=["Pendiente", "En Proceso", "En Taller"],
@@ -171,11 +167,6 @@ def ingreso_vehiculos_page(request):
 
         return redirect("ingreso-vehiculos")
 
-    # ======================================================
-    # 📋 Últimos vehículos disponibles
-    # SE CARGA VIA JS → ingreso_vehiculos.js
-    # ======================================================
-
     return render(request, "ingreso-vehiculos.html", {
         "menu_active": "ingreso_vehiculos",
         "empleado": empleado,
@@ -185,100 +176,26 @@ def ingreso_vehiculos_page(request):
 
 
 # ==========================================================
-# 📄 FICHA VEHÍCULO
+# 📄 FICHA VEHÍCULO — VERSIÓN DUPLICADA (SE DESHABILITA)
 # ==========================================================
+"""
 @login_required(login_url='inicio-sesion')
 @todos_roles
 def ficha_vehiculo_page(request):
+    # ⚠️ Esta versión queda obsoleta
+    # La verdadera está en vehiculos/views.py → api_ficha + ficha_vehiculo
     patente = (request.GET.get("patente") or "").strip().upper()
-
     empleado = (
-        Empleado.objects
-        .select_related('taller')
-        .filter(usuario=request.user.username)
-        .first()
+        Empleado.objects.select_related('taller')
+        .filter(usuario=request.user.username).first()
     )
-
     return render(request, 'ficha-vehiculo.html', {
         "menu_active": "ficha_vehiculo",
         "empleado": empleado,
         "patente": patente,
     })
-
-
+"""
 # ==========================================================
-# 📊 REPORTES (Supervisor)
-# ==========================================================
-@login_required(login_url='inicio-sesion')
-def reportes_page(request):
-    user = request.user
-
-    empleado = (
-        Empleado.objects
-        .select_related('taller')
-        .filter(usuario=user.username)
-        .first()
-    )
-
-    if not user.groups.filter(name__iexact="SUPERVISOR").exists():
-        return redirect("inicio")
-
-    return render(request, 'reportes.html', {
-        "menu_active": "reportes",
-        "empleado": empleado,
-    })
-
-
-# ==========================================================
-# 🛠️ REGISTRO TALLER (Mecánico / Supervisor)
-# ==========================================================
-@login_required(login_url="inicio-sesion")
-@mecanico_or_supervisor
-def registro_taller_page(request):
-
-    empleado = (
-        Empleado.objects
-        .select_related("taller")
-        .filter(usuario=request.user.username)
-        .first()
-    )
-
-    # ------------ MODO MECÁNICO ----------------
-    if empleado.cargo.upper() == "MECANICO":
-        ots = (
-            OrdenTrabajo.objects
-            .select_related("patente", "taller", "rut")
-            .filter(
-                rut=empleado,
-                estado__in=["En Taller", "En Proceso", "Pausado"]
-            )
-            .order_by("-fecha_ingreso", "-hora_ingreso")
-        )
-
-        return render(request, "registro-taller.html", {
-            "menu_active": "registro_taller",
-            "empleado": empleado,
-            "ots": ots,
-            "modo": "mecanico",
-        })
-
-    # ------------ MODO SUPERVISOR ----------------
-    ots = (
-        OrdenTrabajo.objects
-        .select_related("patente", "taller", "rut")
-        .filter(
-            taller_id=empleado.taller_id,
-            estado__in=["Pendiente", "En Taller", "En Proceso", "Pausado"]
-        )
-        .order_by("-fecha_ingreso", "-hora_ingreso")
-    )
-
-    return render(request, "registro-taller.html", {
-        "menu_active": "registro_taller",
-        "empleado": empleado,
-        "ots": ots,
-        "modo": "supervisor",
-    })
 
 
 # ==========================================================
@@ -287,7 +204,6 @@ def registro_taller_page(request):
 @login_required(login_url='inicio-sesion')
 @supervisor_only
 def asignacion_taller_page(request):
-
     supervisor = (
         Empleado.objects
         .select_related("taller")
@@ -313,18 +229,13 @@ def asignacion_taller_page(request):
         .order_by("nombre")
     )
 
-    # POST → asignar mecánico
     if request.method == "POST":
-
         ot_id = request.POST.get("ot_id")
         mecanico_rut = request.POST.get("mecanico_rut")
         comentario = (request.POST.get("comentario") or "").strip()
 
         if not comentario:
-            return JsonResponse({
-                "success": False,
-                "message": "Debe ingresar un comentario."
-            })
+            return JsonResponse({"success": False, "message": "Debe ingresar comentario."})
 
         ot = (
             OrdenTrabajo.objects
@@ -337,10 +248,7 @@ def asignacion_taller_page(request):
         )
 
         if not ot:
-            return JsonResponse({
-                "success": False,
-                "message": "OT no válida o no pertenece a tu taller."
-            })
+            return JsonResponse({"success": False, "message": "OT inválida."})
 
         mecanico = (
             Empleado.objects
@@ -353,23 +261,14 @@ def asignacion_taller_page(request):
         )
 
         if not mecanico:
-            return JsonResponse({
-                "success": False,
-                "message": "El mecánico seleccionado no pertenece a tu taller."
-            })
+            return JsonResponse({"success": False, "message": "Mecánico inválido."})
 
-        # Actualizar OT
         ot.estado = "En Taller"
         ot.rut = mecanico
-        ot.descripcion = (ot.descripcion or "") + \
-            f"\n[Asignado por {supervisor.usuario}] {comentario}"
+        ot.descripcion = (ot.descripcion or "") + f"\n[Supervisor {supervisor.usuario}] {comentario}"
         ot.save()
 
-        # Actualizar vehículo
-        vehiculo = Vehiculo.objects.filter(
-            patente=ot.patente_id
-        ).first()
-
+        vehiculo = Vehiculo.objects.filter(patente=ot.patente_id).first()
         if vehiculo:
             vehiculo.estado = "En Taller"
             vehiculo.ubicacion = supervisor.taller.nombre
@@ -377,7 +276,6 @@ def asignacion_taller_page(request):
 
         return JsonResponse({"success": True})
 
-    # GET → listar pendientes
     ots_pendientes = (
         OrdenTrabajo.objects
         .filter(

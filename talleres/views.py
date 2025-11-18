@@ -25,7 +25,7 @@ def registro_taller_page(request):
         .first()
     )
 
-    # 🚨 NUEVO: determinar modo (sin romper nada)
+    # 🚨 NUEVO: determinar modo (mecánico o supervisor)
     modo = "mecanico"
     if empleado and empleado.cargo and empleado.cargo.upper() == "SUPERVISOR":
         modo = "supervisor"
@@ -52,7 +52,7 @@ def registro_taller_page(request):
         if not patente or not nuevo_estado:
             return JsonResponse({"success": False, "message": "Debe indicar patente y estado."})
 
-        # Si finaliza, comentario obligatorio
+        # Si finaliza → comentario obligatorio
         if nuevo_estado == "Finalizado" and comentario == "":
             return JsonResponse({
                 "success": False,
@@ -77,13 +77,13 @@ def registro_taller_page(request):
             return JsonResponse({"success": False, "message": "No hay OT activa para actualizar."})
 
         # ============================================================
-        # 🔥 Validación de transiciones permitidas
+        # 🔥 Validación de transiciones permitidas (ACTUALIZADAS)
         # ============================================================
         TRANSICIONES_VALIDAS = {
             "Pendiente": ["En Taller"],
             "En Taller": ["En Proceso", "Pausado"],
             "En Proceso": ["Pausado", "Finalizado"],
-            "Pausado": ["En Proceso", "Finalizado"],
+            "Pausado": ["En Taller", "En Proceso", "Finalizado"],  # ✔ agregado “En Taller”
         }
 
         estado_actual = ot.estado
@@ -116,7 +116,7 @@ def registro_taller_page(request):
     # ============================================================
     ots = OrdenTrabajo.objects.filter(
         taller_id=empleado.taller.taller_id,
-        estado__in=["Pendiente", "En Taller", "En Proceso"]
+        estado__in=["Pendiente", "En Taller", "En Proceso", "Pausado"]  # ✔ se agregó Pausado
     )
 
     patentes = [normalize(ot.patente_id) for ot in ots]
