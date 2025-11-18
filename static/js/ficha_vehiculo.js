@@ -1,5 +1,24 @@
+// static/js/ficha_vehiculo.js
 (function () {
     const $ = (sel) => document.querySelector(sel);
+
+    // =====================================================
+    // CSRF
+    // =====================================================
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+            for (const cookie of document.cookie.split(";")) {
+                const c = cookie.trim();
+                if (c.startsWith(name + "=")) {
+                    cookieValue = decodeURIComponent(c.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie("csrftoken");
 
     const inputPatente = $('#inputPatente');
     const btnBuscar = $('#btnBuscar');
@@ -17,28 +36,27 @@
     const v_estado = $('#v_estado');
 
     // KPIs
-    const k_ots = $('#k_ots');
-    const k_inc = $('#k_inc');
-    const k_pres = $('#k_pres');
+    const k_ots   = $('#k_ots');
+    const k_inc   = $('#k_inc');
+    const k_pres  = $('#k_pres');
     const k_llave = $('#k_llave');
 
     // OT actual
-    const otCard = $('#otActualCard');
-    const ot_id = $('#ot_id');
+    const otCard   = $('#otActualCard');
+    const ot_id    = $('#ot_id');
     const ot_estado = $('#ot_estado');
-    const ot_fecha = $('#ot_fecha');
+    const ot_fecha  = $('#ot_fecha');
     const ot_taller = $('#ot_taller');
 
     // Panel cambio estado
-    const panelCambio = $('#panelCambioEstado');
-    const estadoNuevo = $('#estadoNuevo');
+    const panelCambio      = $('#panelCambioEstado');
+    const estadoNuevo      = $('#estadoNuevo');
     const comentarioEstado = $('#comentarioEstado');
-    const estadoMsg = $('#estadoMsg');
+    const estadoMsg        = $('#estadoMsg');
     const btnGuardarEstado = $('#btnGuardarEstado');
 
     // Historial
     const timeline = $('#timeline');
-
 
     function showAlert(type, msg) {
         alertBox.innerHTML = `
@@ -60,7 +78,7 @@
 
         try {
             const url = `/vehiculos/api/ficha/?patente=${encodeURIComponent(patente)}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { credentials: "same-origin" });
             const data = await res.json();
 
             if (!data.success) {
@@ -78,31 +96,31 @@
             alertBox.innerHTML = '';
 
             // Vehículo
-            v_patente.textContent = data.vehiculo.patente;
-            v_marca.textContent = data.vehiculo.marca;
-            v_modelo.textContent = data.vehiculo.modelo;
-            v_anio.textContent = data.vehiculo.anio ?? '—';
-            v_tipo.textContent = data.vehiculo.tipo;
+            v_patente.textContent   = data.vehiculo.patente;
+            v_marca.textContent     = data.vehiculo.marca;
+            v_modelo.textContent    = data.vehiculo.modelo;
+            v_anio.textContent      = data.vehiculo.anio ?? '—';
+            v_tipo.textContent      = data.vehiculo.tipo;
             v_ubicacion.textContent = data.vehiculo.ubicacion;
-            v_estado.textContent = data.vehiculo.estado;
+            v_estado.textContent    = data.vehiculo.estado;
 
-            // KPIs
-            k_ots.textContent = data.kpis.ots;
-            k_inc.textContent = data.kpis.incidentes ?? 0;
-            k_pres.textContent = data.kpis.prestamos ?? 0;
+            // KPIs (los extras pueden venir null)
+            k_ots.textContent   = data.kpis.ots;
+            k_inc.textContent   = data.kpis.incidentes ?? 0;
+            k_pres.textContent  = data.kpis.prestamos ?? 0;
             k_llave.textContent = data.kpis.llave ?? 0;
 
             // OT actual
             if (data.ot_actual) {
-                otCard.style.display = 'block';
+                otCard.style.display   = 'block';
                 panelCambio.style.display = 'block';
 
-                ot_id.textContent = data.ot_actual.id;
+                ot_id.textContent     = data.ot_actual.id;
                 ot_estado.textContent = data.ot_actual.estado;
-                ot_fecha.textContent = `${data.ot_actual.fecha} ${data.ot_actual.hora || ""}`;
+                ot_fecha.textContent  = `${data.ot_actual.fecha} ${data.ot_actual.hora || ""}`;
                 ot_taller.textContent = data.ot_actual.taller_nombre;
             } else {
-                otCard.style.display = 'none';
+                otCard.style.display   = 'none';
                 panelCambio.style.display = 'none';
             }
 
@@ -121,7 +139,7 @@
         const url = `/vehiculos/api/ficha/ots/?patente=${encodeURIComponent(patente)}`;
 
         try {
-            const res = await fetch(url);
+            const res = await fetch(url, { credentials: "same-origin" });
             const data = await res.json();
 
             timeline.innerHTML = '';
@@ -148,12 +166,12 @@
     }
 
     // =====================================================
-    //  GUARDAR CAMBIO DE ESTADO
+    //  GUARDAR CAMBIO DE ESTADO (usa API oficial)
     // =====================================================
     btnGuardarEstado?.addEventListener("click", async () => {
-        const ot = ot_id.textContent.trim();
-        const nuevo = estadoNuevo.value;
+        const nuevo      = estadoNuevo.value;
         const comentario = comentarioEstado.value.trim();
+        const patente    = v_patente.textContent.trim();
 
         if (!nuevo) {
             estadoMsg.innerHTML = `<div class="alert alert-warning">Seleccione un estado.</div>`;
@@ -166,15 +184,20 @@
         }
 
         const fd = new FormData();
-        fd.append("patente", v_patente.textContent.trim());
+        fd.append("patente", patente);
         fd.append("estado", nuevo);
         fd.append("comentario", comentario);
 
         try {
-            const res = await fetch("/registro-taller/", {
+            // 🔁 Antes: POST a /registro-taller/ (vista HTML)
+            // Ahora: usamos la API oficial de cambio de estado
+            const res = await fetch("/api/ordenestrabajo/cambiar-estado/", {
                 method: "POST",
                 body: fd,
-                headers: { "X-Requested-With": "XMLHttpRequest" },
+                headers: {
+                    "X-CSRFToken": csrftoken,
+                    "X-Requested-With": "XMLHttpRequest"
+                },
                 credentials: "same-origin"
             });
 
@@ -188,7 +211,7 @@
             estadoMsg.innerHTML = `<div class="alert alert-success">Estado actualizado correctamente.</div>`;
 
             // Recargar ficha
-            setTimeout(() => buscarVehiculo(), 1000);
+            setTimeout(() => buscarVehiculo(), 800);
 
         } catch (err) {
             console.error(err);
@@ -196,11 +219,15 @@
         }
     });
 
-
     // EVENTOS
-    btnBuscar.addEventListener('click', buscarVehiculo);
-    inputPatente.addEventListener('keyup', (e) => {
+    btnBuscar?.addEventListener('click', buscarVehiculo);
+    inputPatente?.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') buscarVehiculo();
     });
+
+    // Si la página viene con patente en el input, cargamos de inmediato
+    if (inputPatente && inputPatente.value.trim() !== "") {
+        buscarVehiculo();
+    }
 
 })();

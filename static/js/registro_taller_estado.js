@@ -1,5 +1,6 @@
+// static/js/registro_taller_estado.js
 // ======================================================
-//  Actualización de estado de una OT (mecánico/supervisor)
+//  Actualización de estado de una OT (mecánico / supervisor)
 // ======================================================
 
 // CSRF
@@ -21,8 +22,9 @@ const csrftoken = getCookie("csrftoken");
 
 // ======================================================
 //  Enviar cambio de estado al backend
+//  (usa la API oficial: /api/ordenestrabajo/cambiar-estado/)
 // ======================================================
-async function enviarCambioEstado(patente, estado, comentario="") {
+async function enviarCambioEstado(patente, estado, comentario = "") {
 
     const fd = new FormData();
     fd.append("patente", patente);
@@ -30,23 +32,28 @@ async function enviarCambioEstado(patente, estado, comentario="") {
     fd.append("comentario", comentario);
 
     try {
-        const res = await fetch(window.location.pathname, {
+        // 🔁 Antes: POST a window.location.pathname (/registro-taller/)
+        // Ahora: POST a la API de cambio de estado
+        const res = await fetch("/api/ordenestrabajo/cambiar-estado/", {
             method: "POST",
             body: fd,
             headers: {
                 "X-CSRFToken": csrftoken,
                 "X-Requested-With": "XMLHttpRequest"
-            }
+            },
+            credentials: "same-origin"
         });
 
         const data = await res.json();
 
         if (!data.success) {
-            alert(data.message);
+            alert(data.message || "Error al actualizar estado.");
             return;
         }
 
-        cargarVehiculos(); // refresca tabla
+        if (typeof cargarVehiculos === "function") {
+            cargarVehiculos(); // refresca tabla principal
+        }
         alert("Estado actualizado correctamente.");
 
     } catch (err) {
@@ -61,11 +68,10 @@ async function enviarCambioEstado(patente, estado, comentario="") {
 // ======================================================
 document.addEventListener("click", (e) => {
 
-    // Botón finalización
+    // ✔ Botón FINALIZAR
     if (e.target.classList.contains("btn-finalizar")) {
 
         const patente = e.target.dataset.patente;
-
         const comentario = prompt("Ingrese comentario obligatorio para finalizar:");
 
         if (!comentario || comentario.trim() === "") {
@@ -76,13 +82,13 @@ document.addEventListener("click", (e) => {
         enviarCambioEstado(patente, "Finalizado", comentario);
     }
 
-    // Botón pausa
+    // ✔ Botón PAUSAR
     if (e.target.classList.contains("btn-pausar")) {
         const patente = e.target.dataset.patente;
         enviarCambioEstado(patente, "Pausado");
     }
 
-    // Botón reanudar
+    // ✔ Botón REANUDAR
     if (e.target.classList.contains("btn-reanudar")) {
         const patente = e.target.dataset.patente;
         enviarCambioEstado(patente, "En Proceso");
