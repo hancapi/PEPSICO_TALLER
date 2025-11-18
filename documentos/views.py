@@ -1,8 +1,6 @@
-# documentos/views.py
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from ordenestrabajo.models import OrdenTrabajo
@@ -20,9 +18,6 @@ def _size_ok(fobj) -> bool:
 
 @require_http_methods(["GET"])
 def document_list(request):
-    """
-    GET /api/documentos/?ot_id=123  |  /api/documentos/?patente=ABCZ12
-    """
     ot_id = request.GET.get("ot_id")
     patente = request.GET.get("patente")
 
@@ -49,15 +44,6 @@ def document_list(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def document_upload(request):
-    """
-    POST /api/documentos/upload/
-    form-data:
-      - archivo: file (jpg|jpeg|png|pdf; <= 15 MB)
-      - titulo: str
-      - tipo: FOTO|INFORME|OTRO (opcional)
-      - ot_id: int (opcional)
-      - patente: str (opcional)
-    """
     f = request.FILES.get("archivo")
     titulo = (request.POST.get("titulo") or "").strip()
     tipo = (request.POST.get("tipo") or "OTRO").strip().upper()
@@ -86,11 +72,9 @@ def document_upload(request):
     if not ot and not veh:
         return JsonResponse({"success": False, "message": "Debe indicar ot_id o patente"}, status=400)
 
-    # Guardado por storage (MEDIA_ROOT)
     d = Documento(ot=ot, patente=veh, titulo=titulo, tipo=tipo)
-    d.save()  # necesitamos ID para path dinámico
+    d.save()
 
-    # Ajusta upload_to según destino (ya lo hace el model.save(), pero aquí guardamos manualmente por seguridad)
     subdir = f"ordenes/{d.ot_id}" if d.ot_id else f"vehiculos/{d.patente_id}"
     path = default_storage.save(f"{subdir}/{f.name}", ContentFile(f.read()))
     d.archivo.name = path

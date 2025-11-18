@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}Asignación Taller{% endblock %}
+
+{% block content %}
+
+<div class="page-container fade-in">
+
+    <!-- ===========================================
+            ENCABEZADO
+    ============================================ -->
+    <div class="section-header mb-4">
+        <h2 class="fw-bold">🧰 Asignación de Vehículos</h2>
+        <p class="text-muted">Asignar mecánico y recibir vehículo en el taller.</p>
+    </div>
+
+
+    <!-- ===========================================
+            TABLA OTs PENDIENTES
+    ============================================ -->
+    <div class="card mb-4">
+        <div class="card-body">
+
+            <h5 class="fw-bold mb-3">🔄 Vehículos Pendientes de Asignación</h5>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>OT</th>
+                            <th>Patente</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
+                            <th>Fecha Ingreso</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for ot in ots %}
+                        <tr>
+                            <td>#{{ ot.ot_id }}</td>
+                            <td>{{ ot.patente.patente }}</td>
+                            <td>{{ ot.patente.marca }}</td>
+                            <td>{{ ot.patente.modelo }}</td>
+                            <td>{{ ot.fecha_ingreso }} {{ ot.hora_ingreso }}</td>
+
+                            <td>
+                                <button class="btn btn-primary btn-sm btn-asignar"
+                                        data-ot-id="{{ ot.ot_id }}"
+                                        data-patente="{{ ot.patente.patente }}">
+                                    Asignar
+                                </button>
+                            </td>
+                        </tr>
+
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">
+                                No hay vehículos pendientes de asignación.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- ===========================================
+            MODAL ASIGNACIÓN
+    ============================================ -->
+    <div id="modalAsignacion" class="custom-modal d-none">
+        <div class="modal-content card p-4 shadow-lg">
+
+            <h5 class="fw-bold mb-3">Asignar Mecánico</h5>
+
+            <p class="text-muted">
+                Patente: <strong><span id="asig_patente_txt"></span></strong>
+            </p>
+
+            <form id="formAsignacion">
+
+                <!-- ID Oculto -->
+                <input type="hidden" id="asig_ot_id">
+
+                <!-- Mecánico -->
+                <div class="mt-3">
+                    <label class="form-label">Mecánico</label>
+                    <select id="asig_mecanico" class="form-select">
+                        {% for m in mecanicos %}
+                        <option value="{{ m.rut }}">
+                            {{ m.nombre }} ({{ m.rut }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Comentario -->
+                <div class="mt-3">
+                    <label class="form-label">Comentario</label>
+                    <textarea id="asig_comentario"
+                              class="form-control"
+                              placeholder="Ej: Recibido en taller y asignado a mecánico."
+                    ></textarea>
+                </div>
+
+                <!-- Acciones -->
+                <div class="text-end mt-4">
+                    <button type="button" class="btn btn-secondary me-2" onclick="cerrarModal()">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Confirmar Asignación
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+
+</div>
+
+<script src="{% static 'js/asignacion_taller.js' %}"></script>
+
+{% endblock %}

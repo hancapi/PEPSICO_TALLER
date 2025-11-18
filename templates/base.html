@@ -1,0 +1,77 @@
+{% load static %}
+{% load roles %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Taller PepsiCo Chile{% endblock %}</title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+    <!-- CSS Global -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body>
+
+<!-- ====================================================
+     HEADER MOBILE
+==================================================== -->
+<div class="mobile-header">
+    <button id="toggleSidebar" class="btn btn-light">
+        ☰
+    </button>
+    <strong class="ms-2">🚗 Taller PepsiCo</strong>
+</div>
+
+<!-- ====================================================
+     SIDEBAR
+==================================================== -->
+<div class="sidebar" id="sidebar">
+    <h4>🚗 Taller PepsiCo Chile</h4>
+
+    <a href="{% url 'inicio' %}"
+       class="nav-link {% if menu_active == 'inicio' %}active{% endif %}">
+        🏠 Inicio
+    </a>
+    <a href="{% url 'chat:chat' %}"
+       class="nav-link {% if menu_active == 'chat' %}active{% endif %}">
+        💬 Chat
+    </a>
+</div>
+
+<!-- ====================================================
+     TOPBAR
+==================================================== -->
+<div class="topbar">
+    <span class="env-indicator">Entorno Local</span>
+    <a href="{% url 'autenticacion:logout-web' %}" class="btn btn-outline-danger btn-sm ms-3">
+        Cerrar Sesión
+    </a>
+</div>
+
+<!-- ====================================================
+     MAIN CONTENT
+==================================================== -->
+<div class="main-content">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- ====================================================
+     SCRIPTS
+==================================================== -->
+<script>
+    document.getElementById("toggleSidebar")?.addEventListener("click", () => {
+        document.getElementById("sidebar").classList.toggle("sidebar-open");
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

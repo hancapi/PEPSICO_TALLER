@@ -1,218 +1,202 @@
-// static/js/ingreso_vehiculos.js
 (() => {
-  const BASE_API = '/api/ordenestrabajo';
+  const API_BASE = "/api/ordenestrabajo";
 
-  const $  = (id)  => document.getElementById(id);
-  const qs = (sel) => document.querySelector(sel);
-  const qsa= (sel) => Array.from(document.querySelectorAll(sel));
+  const $  = (id) => document.getElementById(id);
+  const qsa = (sel) => [...document.querySelectorAll(sel)];
 
-  const form         = $('formIngreso');
-  const btnCrear     = $('btnCrear');
-  const okIngreso    = $('okIngreso');
-  const errIngreso   = $('errIngreso');
+  const form          = $("formIngreso");
+  const inputPatente  = $("patente");
+  const inputFecha    = $("fecha");
+  const selectTaller  = $("tallerId");
+  const inputDesc     = $("descripcion");
+  const btnCrear      = $("btnCrear");
 
-  const inputPatente = $('patente');
-  const inputDesc    = $('descripcion');
-  const inputFecha   = $('fecha');
-  const selectTaller = $('tallerId');
+  const slotsGrid     = $("slotsGrid");
+  const slotSel       = $("slotSel");
+  const slotResumen   = $("slotResumen");
 
-  const slotsGrid    = $('slotsGrid');
-  const slotResumen  = $('slotResumen');
-  const slotSel      = $('slotSel');
+  const okIngreso     = $("okIngreso");
+  const errIngreso    = $("errIngreso");
+
+  const tablaUltimos  = $("tablaUltimosIngresos");
 
   let horaSeleccionada = null;
 
-  // ===== UI helpers =====
-  function clearAlerts() {
-    if (okIngreso) { okIngreso.classList.add('d-none'); okIngreso.style.display = 'none'; }
-    if (errIngreso){ errIngreso.classList.add('d-none'); errIngreso.style.display = 'none'; }
-  }
-
-  function scrollAlertIntoView(el) {
-    if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  function limpiarMensajes() {
+    okIngreso?.classList.add("d-none");
+    errIngreso?.classList.add("d-none");
   }
 
   function showOk(msg) {
-    console.debug('[UI] showOk:', msg);
-    if (!okIngreso) return;
-    okIngreso.textContent = msg || '✅ OT creada correctamente';
-    okIngreso.classList.remove('d-none');
-    okIngreso.style.display = 'block';
-    if (errIngreso) { errIngreso.classList.add('d-none'); errIngreso.style.display = 'none'; }
-    scrollAlertIntoView(okIngreso);
+    limpiarMensajes();
+    okIngreso.textContent = msg;
+    okIngreso.classList.remove("d-none");
   }
 
   function showErr(msg) {
-    console.debug('[UI] showErr:', msg);
-    if (!errIngreso) return;
-    errIngreso.textContent = `❌ ${msg || 'Error al crear OT'}`;
-    errIngreso.classList.remove('d-none');
-    errIngreso.style.display = 'block';
-    if (okIngreso) { okIngreso.classList.add('d-none'); okIngreso.style.display = 'none'; }
-    scrollAlertIntoView(errIngreso);
+    limpiarMensajes();
+    errIngreso.textContent = msg;
+    errIngreso.classList.remove("d-none");
   }
 
-  function enableCreateButtonIfReady() {
-    const patente = inputPatente?.value?.trim();
-    const fecha   = inputFecha?.value;
-    const taller  = selectTaller?.value;
-    const ready   = Boolean(patente && fecha && taller && horaSeleccionada);
-    if (btnCrear) btnCrear.disabled = !ready;
+  function setButtonLoading(on) {
+    btnCrear.disabled = on;
+    btnCrear.innerHTML = on ? "⏳ Creando..." : "💾 Crear OT";
   }
 
-  function setSubmitting(on) {
-    if (!btnCrear) return;
-    if (on) {
-      btnCrear.disabled = true;
-      btnCrear.innerText = '⏳ Creando...';
-    } else {
-      btnCrear.innerText = '💾 Crear OT';
-      enableCreateButtonIfReady();
-    }
+  function formReady() {
+    btnCrear.disabled = !(
+      inputPatente?.value.trim() &&
+      inputFecha?.value &&
+      selectTaller?.value &&
+      horaSeleccionada
+    );
   }
 
-  // ===== Agenda =====
   async function cargarAgenda(preserveMsg = false) {
-    if (!preserveMsg) clearAlerts();
+    if (!preserveMsg) limpiarMensajes();
 
     horaSeleccionada = null;
-    if (slotSel) slotSel.textContent = '';
-    if (slotResumen) slotResumen.classList.add('d-none');
-    if (btnCrear) btnCrear.disabled = true;
+    slotSel.textContent = "";
+    slotResumen.classList.add("d-none");
+    btnCrear.disabled = true;
 
-    const fecha    = inputFecha?.value;
-    const tallerId = selectTaller?.value;
-    if (!fecha || !tallerId) return;
+    const fecha  = inputFecha.value;
+    const taller = selectTaller.value;
 
-    if (slotsGrid) {
-      slotsGrid.innerHTML = '<div class="text-muted">Cargando...</div>';
-    }
+    if (!fecha || !taller) return;
+
+    slotsGrid.innerHTML = `<div class="text-muted">Cargando agenda...</div>`;
 
     try {
-      const url = `${BASE_API}/api/agenda/slots/?fecha=${encodeURIComponent(fecha)}&taller_id=${encodeURIComponent(tallerId)}`;
-      const res = await fetch(url, { credentials: 'same-origin' });
+      const url = `${API_BASE}/agenda/slots/?fecha=${encodeURIComponent(fecha)}&taller_id=${encodeURIComponent(taller)}`;
+      const res = await fetch(url, { credentials: "same-origin" });
+      const data = await res.json();
+
+      if (!data.success) {
+        slotsGrid.innerHTML = `<div class="text-danger">${data.message}</div>`;
+        return;
+      }
+
+      slotsGrid.innerHTML = "";
+      data.slots.forEach((slot) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className =
+          "btn btn-sm me-2 mb-2 " +
+          (slot.ocupado ? "btn-outline-secondary" : "btn-outline-success");
+        btn.textContent = slot.hora;
+        btn.disabled = slot.ocupado;
+
+        btn.addEventListener("click", () => {
+          qsa("#slotsGrid button").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          horaSeleccionada = slot.hora;
+          slotSel.textContent = horaSeleccionada;
+          slotResumen.classList.remove("d-none");
+          formReady();
+        });
+
+        slotsGrid.appendChild(btn);
+      });
+    } catch (e) {
+      console.error("Error cargando agenda:", e);
+      slotsGrid.innerHTML = `<div class="text-danger">No se pudo cargar la agenda.</div>`;
+    }
+  }
+
+  async function crearIngreso(e) {
+    e.preventDefault();
+
+    const patente = inputPatente.value.trim();
+    const fecha   = inputFecha.value;
+    const taller  = selectTaller.value;
+    const hora    = horaSeleccionada;
+    const desc    = inputDesc?.value.trim();
+
+    if (!patente) return showErr("Debe ingresar la patente.");
+    if (!fecha) return showErr("Debe seleccionar una fecha.");
+    if (!taller) return showErr("Debe seleccionar un taller.");
+    if (!hora) return showErr("Debe seleccionar un horario.");
+
+    const fd = new FormData();
+    fd.append("patente", patente.toUpperCase());
+    fd.append("fecha", fecha);
+    fd.append("hora", hora);
+    fd.append("taller_id", taller);
+    if (desc) fd.append("descripcion", desc);
+
+    setButtonLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/ingresos/create/`, {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin",
+      });
+
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        if (slotsGrid) {
-          slotsGrid.innerHTML = `<div class="text-danger">Error cargando agenda: ${data.message || res.status}</div>`;
-        }
-        return;
+        return showErr(data.message || "No se pudo crear la OT.");
       }
 
-      if (!slotsGrid) return;
-      const frag = document.createDocumentFragment();
+      showOk(`OT #${data.ot.id} creada correctamente.`);
 
-      (data.slots || []).forEach(({ hora, ocupado }) => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = `btn btn-sm me-2 mb-2 ${ocupado ? 'btn-outline-secondary' : 'btn-outline-success'}`;
-        b.textContent = hora;
-        b.disabled = !!ocupado;
+      form.reset();
+      horaSeleccionada = null;
+      slotResumen.classList.add("d-none");
+      btnCrear.disabled = true;
 
-        b.addEventListener('click', () => {
-          qsa('#slotsGrid button').forEach(x => x.classList.remove('active'));
-          b.classList.add('active');
-          horaSeleccionada = hora;
-          if (slotSel) slotSel.textContent = hora;
-          if (slotResumen) slotResumen.classList.remove('d-none');
-          enableCreateButtonIfReady();
-        });
+      await cargarAgenda(true);
+      await cargarUltimosIngresos();
 
-        frag.appendChild(b);
-      });
-
-      slotsGrid.innerHTML = '';
-      slotsGrid.appendChild(frag);
     } catch (e) {
-      console.warn('Error al cargar agenda:', e);
-      if (slotsGrid) slotsGrid.innerHTML = `<div class="text-danger">Error de red al cargar agenda</div>`;
+      console.error("Error creando OT:", e);
+      showErr("Error de comunicación con el servidor.");
+    } finally {
+      setButtonLoading(false);
     }
   }
 
-  // ===== Crear Ingreso =====
-  async function crearIngreso(ev) {
-    ev.preventDefault();
-
-    const patente = (inputPatente?.value || '').trim().toUpperCase();
-    const fecha   = inputFecha?.value;
-    const taller  = selectTaller?.value;
-    const hora    = horaSeleccionada;
-    const desc    = (inputDesc?.value || '').trim();
-
-    if (!patente) { showErr('Ingresa la patente.'); inputPatente?.focus(); return; }
-    if (inputPatente && !inputPatente.checkValidity()) {
-      showErr(inputPatente.title || 'Patente inválida.');
-      inputPatente.focus();
-      return;
-    }
-    if (!hora)                 { showErr('Selecciona un horario de la agenda.'); return; }
-    if (!fecha || !taller)     { showErr('Selecciona fecha y taller.'); return; }
-
-    const formData = new FormData();
-    formData.append('patente', patente);
-    formData.append('fecha',   fecha);
-    formData.append('hora',    hora);
-    formData.append('taller_id', String(taller));
-    if (desc) formData.append('descripcion', desc);
+  async function cargarUltimosIngresos() {
+    if (!tablaUltimos) return;
 
     try {
-      setSubmitting(true);
-      const res = await fetch(`${BASE_API}/api/ingresos/create/`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin',
+      const res = await fetch(`${API_BASE}/ultimas/?solo_disponibles=1`, {
+        credentials: "same-origin",
       });
 
-      const isJson = (res.headers.get('content-type') || '').includes('application/json');
-      const data = isJson ? await res.json() : null;
+      const data = await res.json();
 
-      if (!res.ok || !data?.success) {
-        const msg = data?.message
-          || (res.status === 409 ? 'Conflicto de agenda o vehículo ya en curso.' : `Error HTTP ${res.status}`);
-        showErr(msg);
-        return;
+      if (data.success) {
+        tablaUltimos.innerHTML = data.html;
       }
-
-      const ot = data.ot;
-      showOk(`✅ OT #${ot.id} creada: ${ot.patente} a las ${ot.hora} (taller ${ot.taller_id})`);
-
-      await cargarAgenda(true);   // ¡preserva el mensaje!
-      if (inputDesc) inputDesc.value = '';
     } catch (e) {
-      console.error('crearIngreso error:', e);
-      showErr('No se pudo crear la OT. Revisa tu conexión e intenta nuevamente.');
-    } finally {
-      setSubmitting(false);
+      console.error("Error cargando últimos ingresos:", e);
     }
   }
 
-  // ===== Bind =====
   function bind() {
-    if (form && !form.dataset.bound) {
-      form.addEventListener('submit', crearIngreso);
-      form.dataset.bound = '1';
-    }
-    $('btnCargarAgenda')?.addEventListener('click', () => cargarAgenda(false));
-    inputFecha?.addEventListener('change',  () => cargarAgenda(false));
-    selectTaller?.addEventListener('change',() => cargarAgenda(false));
-    inputPatente?.addEventListener('input', enableCreateButtonIfReady);
+    if (!form) return;
 
-    if (inputFecha && !inputFecha.value) {
+    form.addEventListener("submit", crearIngreso);
+
+    inputPatente.addEventListener("input", formReady);
+    inputFecha.addEventListener("change", () => cargarAgenda(false));
+    selectTaller.addEventListener("change", () => cargarAgenda(false));
+
+    if (!inputFecha.value) {
       const d = new Date();
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      inputFecha.value = `${yyyy}-${mm}-${dd}`;
+      inputFecha.value = d.toISOString().slice(0, 10);
     }
 
     cargarAgenda(false);
+    cargarUltimosIngresos();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bind);
-  } else {
-    bind();
-  }
+  document.readyState === "loading"
+    ? document.addEventListener("DOMContentLoaded", bind)
+    : bind();
 })();

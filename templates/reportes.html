@@ -1,133 +1,230 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Reportes - Taller PepsiCo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}"/>
-</head>
-<body>
-  {% include "partials/sidebar.html" with menu_active="reportes" %}
+{% load roles %}
 
-  <div class="main-content p-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h3 class="mb-0">📊 Reportes</h3>
-      <a href="{% url 'inicio' %}" class="btn btn-light btn-sm">← Volver</a>
-    </div>
+{% block title %}Reportes | Taller PepsiCo Chile{% endblock %}
 
-    <!-- Rango de fechas -->
-    <div class="card mb-3">
-      <div class="card-body">
-        <form class="row g-3 align-items-end">
-          <div class="col-sm-6 col-md-3">
-            <label class="form-label">Desde</label>
-            <input type="date" id="fromDate" class="form-control" />
-          </div>
-          <div class="col-sm-6 col-md-3">
-            <label class="form-label">Hasta</label>
-            <input type="date" id="toDate" class="form-control" />
-          </div>
-          <div class="col-md-3">
-            <button id="btnConsultar" class="btn btn-primary w-100 mt-2 mt-md-0">🔎 Consultar</button>
-          </div>
-          <div class="col-md-3 text-md-end small text-muted pt-2 pt-md-0">
-            <span id="tablaCount"></span>
-          </div>
-        </form>
+{% block content %}
+<div class="page-container fade-in">
+
+  <!-- ============================
+       Acceso Denegado
+  ============================= -->
+  {% if acceso_denegado %}
+  <div class="alert alert-danger mt-4">
+    🚫 <strong>Acceso denegado.</strong> Solo el <strong>Supervisor</strong> puede ver esta sección.
+  </div>
+  {% endif %}
+
+  {% if not acceso_denegado %}
+
+  <!-- ============================
+       ENCABEZADO
+  ============================= -->
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">📊</div>
+      <div class="welcome-text">
+        <h1>Panel de Reportes</h1>
+        <p>Estadísticas en tiempo real — Taller PepsiCo Chile</p>
       </div>
     </div>
-
-    <!-- Filtros de tabla -->
-    <div class="card mb-3">
-      <div class="card-body">
-        <form class="row g-3 align-items-end">
-          <div class="col-sm-6 col-md-3">
-            <label class="form-label">Patente</label>
-            <input type="text" id="fltPatente" class="form-control" placeholder="ABCZ12" oninput="this.value=this.value.toUpperCase()" />
-          </div>
-          <div class="col-sm-6 col-md-3">
-            <label class="form-label">Estado</label>
-            <select id="fltEstado" class="form-select">
-              <option value="">(Todos)</option>
-              <option>Pendiente</option>
-              <option>En Proceso</option>
-              <option>Finalizado</option>
-              <option>Cancelado</option>
-            </select>
-          </div>
-          <div class="col-sm-6 col-md-3">
-            <label class="form-label">Taller (ID)</label>
-            <input type="text" id="fltTaller" class="form-control" placeholder="1" />
-          </div>
-          <div class="col-sm-6 col-md-3">
-            <label class="form-label">RUT Creador</label>
-            <input type="text" id="fltCreador" class="form-control" placeholder="11.111.111-1" />
-          </div>
-          <div class="col-12 d-flex gap-2">
-            <button id="btnFiltrar" class="btn btn-outline-primary">Aplicar filtros</button>
-            <button type="button" id="btnLimpiar" class="btn btn-outline-secondary">Limpiar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- KPIs -->
-    <div class="row g-3 mb-3">
-      <div class="col-6 col-md-3">
-        <div class="stats-card text-center py-3">
-          <div class="stat-number" id="statVehiculos">0</div>
-          <div class="stat-label">Vehículos Totales</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="stats-card text-center py-3">
-          <div class="stat-number" id="statTaller">0</div>
-          <div class="stat-label">En Taller</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="stats-card text-center py-3">
-          <div class="stat-number" id="statProceso">0</div>
-          <div class="stat-label">En Proceso</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
-        <div class="stats-card text-center py-3">
-          <div class="stat-number" id="statEmpleados">0</div>
-          <div class="stat-label">Empleados Activos</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabla -->
-    <div class="card">
-      <div class="card-body">
-        <h6 class="mb-3">Órdenes de Trabajo</h6>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead class="table-light">
-              <tr>
-                <th style="width:70px">ID</th>
-                <th style="width:160px">Fecha/Hora</th>
-                <th style="width:120px">Patente</th>
-                <th style="width:220px">Taller</th>
-                <th style="width:140px">Estado</th>
-                <th style="width:170px">RUT Creador</th>
-              </tr>
-            </thead>
-            <tbody id="tablaOtsBody">
-              <tr><td colspan="6" class="text-muted">Cargando…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <script src="{% static 'js/reportes.js' %}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+  <!-- ============================
+       KPIs Globales
+  ============================= -->
+  <div class="stats-section mb-4" id="kpiContainer">
+    <div class="stats-card">
+      <div class="stat-number" id="kpi_vehiculos_totales">—</div>
+      <div class="stat-label">Vehículos Totales</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stat-number" id="kpi_vehiculos_taller">—</div>
+      <div class="stat-label">En Taller</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stat-number" id="kpi_ordenes_activas">—</div>
+      <div class="stat-label">OTs Activas</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stat-number" id="kpi_empleados">—</div>
+      <div class="stat-label">Empleados Activos</div>
+    </div>
+  </div>
+
+  <!-- ============================
+       Gráfico 1 — Vehículos por Taller
+  ============================= -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="fw-bold mb-3">🚗 Vehículos por Taller</h5>
+      <canvas id="chartVehiculosTaller" height="120"></canvas>
+    </div>
+  </div>
+
+  <!-- ============================
+       Gráfico 2 — OTs por Taller (pend/proceso/fin)
+  ============================= -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="fw-bold mb-3">🛠️ Órdenes de Trabajo por Taller</h5>
+      <canvas id="chartOTsTaller" height="120"></canvas>
+    </div>
+  </div>
+
+  <!-- ============================
+       Gráfico 3 — Tiempos Promedio
+  ============================= -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="fw-bold mb-3">⏱️ Tiempos Promedio de Reparación</h5>
+      <canvas id="chartTiempos" height="120"></canvas>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+<!-- ============================
+     Chart.js
+============================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ============================
+     Script del Dashboard
+============================= -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("📊 Cargando reportes...");
+
+  loadKPIs();
+  loadTalleres();
+  loadTiempos();
+
+  // ====================================================
+  // 1) KPIs Globales
+  // ====================================================
+  async function loadKPIs() {
+    try {
+      const res = await fetch("/reportes/api/resumen/");
+      const data = await res.json();
+
+      if (!data.success) return;
+
+      document.getElementById("kpi_vehiculos_totales").textContent = data.data.vehiculos_totales;
+      document.getElementById("kpi_vehiculos_taller").textContent = data.data.vehiculos_en_taller;
+      document.getElementById("kpi_ordenes_activas").textContent = data.data.ordenes_activas;
+      document.getElementById("kpi_empleados").textContent = data.data.empleados_activos;
+
+    } catch (e) {
+      console.error("Error KPIs", e);
+    }
+  }
+
+  // ====================================================
+  // 2) Vehículos + OTs por Taller
+  // ====================================================
+  async function loadTalleres() {
+    try {
+      const res = await fetch("/reportes/api/talleres/");
+      const data = await res.json();
+      if (!data.success) return;
+
+      const labels = data.items.map(t => t.nombre);
+      const vehiculos = data.items.map(t => t.vehiculos_total);
+      const otsPend = data.items.map(t => t.ots_pendientes);
+      const otsProc = data.items.map(t => t.ots_en_proceso);
+      const otsFin = data.items.map(t => t.ots_finalizadas);
+
+      // === Gráfico Vehículos por Taller ===
+      new Chart(document.getElementById("chartVehiculosTaller"), {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Vehículos",
+            data: vehiculos,
+            backgroundColor: "#007bff88",
+            borderColor: "#007bff",
+            borderWidth: 1
+          }]
+        }
+      });
+
+      // === Gráfico OTs ===
+      new Chart(document.getElementById("chartOTsTaller"), {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Pendiente",
+              data: otsPend,
+              backgroundColor: "#ffc107aa",
+              borderColor: "#ffc107",
+              borderWidth: 1
+            },
+            {
+              label: "En Proceso",
+              data: otsProc,
+              backgroundColor: "#17a2b8aa",
+              borderColor: "#17a2b8",
+              borderWidth: 1
+            },
+            {
+              label: "Finalizado",
+              data: otsFin,
+              backgroundColor: "#28a745aa",
+              borderColor: "#28a745",
+              borderWidth: 1
+            }
+          ]
+        }
+      });
+
+    } catch (e) {
+      console.error("Error talleres", e);
+    }
+  }
+
+  // ====================================================
+  // 3) Tiempos Promedio
+  // ====================================================
+  async function loadTiempos() {
+    try {
+      const res = await fetch("/reportes/api/tiempos/");
+      const data = await res.json();
+      if (!data.success) return;
+
+      const labels = Object.values(data.por_taller).map(t => t.taller);
+      const valores = Object.values(data.por_taller).map(t => t.promedio_dias || 0);
+
+      new Chart(document.getElementById("chartTiempos"), {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Promedio (días)",
+            data: valores,
+            tension: 0.3,
+            borderColor: "#6610f2",
+            backgroundColor: "#6610f244",
+            borderWidth: 2,
+            fill: true
+          }]
+        }
+      });
+
+    } catch (e) {
+      console.error("Error tiempos", e);
+    }
+  }
+
+});
+</script>
+
+{% endblock %}

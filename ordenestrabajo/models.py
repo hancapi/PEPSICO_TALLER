@@ -7,17 +7,24 @@ from talleres.models import Taller
 
 class OrdenTrabajo(models.Model):
     class Meta:
-        managed = False               # La tabla se gestiona por SQL propio
+        managed = False
         db_table = 'ordenestrabajo'
+
+    ESTADO_OT_CHOICES = [
+        ("Pendiente", "Pendiente"),
+        ("En Proceso", "En Proceso"),
+        ("En Taller", "En Taller"),
+        ("Finalizado", "Finalizado"),
+        ("Cancelado", "Cancelado"),
+    ]
 
     ot_id = models.AutoField(primary_key=True)
     fecha_ingreso = models.DateField()
     hora_ingreso = models.TimeField(null=True, blank=True)
     fecha_salida = models.DateField(null=True, blank=True)
     descripcion = models.CharField(max_length=255, null=True, blank=True)
-    estado = models.CharField(max_length=50, default='Pendiente')
+    estado = models.CharField(max_length=50, choices=ESTADO_OT_CHOICES, default="Pendiente")
 
-    # FK a vehiculos.patente (VARCHAR)
     patente = models.ForeignKey(
         Vehiculo,
         db_column='patente',
@@ -25,7 +32,6 @@ class OrdenTrabajo(models.Model):
         on_delete=models.RESTRICT,
     )
 
-    # FK a talleres.taller_id (INT)
     taller = models.ForeignKey(
         Taller,
         db_column='taller_id',
@@ -33,16 +39,14 @@ class OrdenTrabajo(models.Model):
         on_delete=models.RESTRICT,
     )
 
-    # Responsable de la OT (FK a empleados.rut - VARCHAR)
     rut = models.ForeignKey(
         Empleado,
         db_column='rut',
         to_field='rut',
         on_delete=models.RESTRICT,
-        related_name='ots_responsable',
+        related_name='ots_responsable'
     )
 
-    # Quién ingresó la OT (auditoría). Puede ser el mismo u otro. Nullable.
     rut_creador = models.ForeignKey(
         Empleado,
         db_column='rut_creador',
@@ -50,8 +54,21 @@ class OrdenTrabajo(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='ots_creadas',
+        related_name='ots_creadas'
     )
+
+    # ======================================================
+    # Normalización para que nunca falle por KG.JV93 etc.
+    # ======================================================
+    def save(self, *args, **kwargs):
+        if self.patente_id:
+            self.patente_id = (
+                self.patente_id.replace(".", "")
+                                .replace("-", "")
+                                .strip()
+                                .upper()
+            )
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"OT #{self.ot_id} - {self.patente_id} ({self.estado})"
@@ -66,7 +83,13 @@ class Repuesto(models.Model):
     cantidad = models.IntegerField(default=1)
     nombre = models.CharField(max_length=100)
     descripcion = models.CharField(max_length=500, null=True, blank=True)
-    ot = models.ForeignKey(OrdenTrabajo, db_column='ot_id', on_delete=models.CASCADE)
+
+    ot = models.ForeignKey(
+        OrdenTrabajo,
+        db_column='ot_id',
+        to_field='ot_id',
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f"{self.nombre} x{self.cantidad} (OT {self.ot_id})"
@@ -92,10 +115,16 @@ class PrestamoVehiculo(models.Model):
         managed = False
         db_table = 'prestamosvehiculos'
 
+    ESTADO_PRESTAMO_CHOICES = [
+        ("En uso", "En uso"),
+        ("Devuelto", "Devuelto"),
+        ("Retrasado", "Retrasado"),
+    ]
+
     prestamo_id = models.AutoField(primary_key=True)
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField(null=True, blank=True)
-    estado = models.CharField(max_length=50, default='En uso')
+    estado = models.CharField(max_length=50, choices=ESTADO_PRESTAMO_CHOICES, default="En uso")
     patente = models.ForeignKey(Vehiculo, db_column='patente', on_delete=models.RESTRICT)
     empleados_rut = models.ForeignKey(Empleado, db_column='empleados_rut', to_field='rut', on_delete=models.RESTRICT)
 
@@ -108,18 +137,29 @@ class Llave(models.Model):
         managed = False
         db_table = 'llaves'
 
+    ESTADO_LLAVE_CHOICES = [
+        ("Disponible", "Disponible"),
+        ("Prestada", "Prestada"),
+        ("Extraviada", "Extraviada"),
+    ]
+
     llave_id = models.AutoField(primary_key=True)
-    estado = models.CharField(max_length=50, default='Disponible')
-    rut = models.ForeignKey(Empleado, db_column='rut', to_field='rut', null=True, blank=True, on_delete=models.SET_NULL)
+    estado = models.CharField(max_length=50, choices=ESTADO_LLAVE_CHOICES, default="Disponible")
+
+    rut = models.ForeignKey(
+        Empleado,
+        db_column='rut',
+        to_field='rut',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
     patente = models.ForeignKey(Vehiculo, db_column='patente', on_delete=models.RESTRICT)
 
     def __str__(self):
         return f"Llave {self.llave_id} - {self.patente_id}"
 
 
-# ----------------------------
-# Pausas (manejada por Django)
-# ----------------------------
 class Pausa(models.Model):
     class Meta:
         db_table = 'pausas'

@@ -1,4 +1,3 @@
-# pepsico_taller/settings.py
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -31,6 +30,7 @@ INSTALLED_APPS = [
     # 3rd party
     'corsheaders',
     'rest_framework',
+    'channels',          # 👈 NUEVO: Channels para WebSockets
 
     # Apps del proyecto
     'autenticacion',
@@ -79,6 +79,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'pepsico_taller.wsgi.application'
+ASGI_APPLICATION = 'pepsico_taller.asgi.application'  # 👈 NUEVO: Channels usa ASGI
 
 # ======================
 # 🔹 BASE DE DATOS (MySQL)
@@ -99,9 +100,8 @@ DATABASES = {
 }
 
 # ======================
-# 🔹 AUTENTICACIÓN
+# 🔹 AUTENTICACIÓN Y SESIÓN
 # ======================
-# NO usamos AUTH_USER_MODEL custom. Autenticamos contra 'empleados' con un backend.
 AUTHENTICATION_BACKENDS = [
     'autenticacion.backends.EmpleadosBackend',
     'django.contrib.auth.backends.ModelBackend',  # fallback
@@ -116,13 +116,13 @@ LOGOUT_REDIRECT_URL = 'inicio-sesion'
 # ======================
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'  
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # ======================
-# 🔹 CORS (Frontend)
+# 🔹 CORS Y CSRF
 # ======================
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -131,7 +131,27 @@ CORS_ALLOWED_ORIGINS = [
     "https://testeorepocaps.loca.lt",
 ]
 CORS_ALLOW_ALL_ORIGINS = True  # Solo en desarrollo
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = True  # 👈 necesario para sesiones vía fetch()
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "https://testeorepocaps.loca.lt",
+]
+
+# ======================================================
+# 🔹 SESIONES Y COOKIES – Ajustes recomendados para MVP
+# ======================================================
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_NAME = 'sessionid'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False           # True si usas HTTPS
+SESSION_COOKIE_SAMESITE = None          # necesario para fetch()
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
+
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = None
 
 # ======================
 # 🔹 LOCALIZACIÓN
@@ -144,6 +164,24 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ======================
-# 🔹 EMAIL (dev a consola)
+# 🔹 EMAIL (solo para desarrollo)
 # ======================
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # o smtp.office365.com
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'tu_correo@gmail.com'
+EMAIL_HOST_PASSWORD = 'tu_password_o_app_password'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# =====================================
+# CHANNELS (WebSockets + Redis)
+# =====================================
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}

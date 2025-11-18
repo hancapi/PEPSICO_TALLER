@@ -2,8 +2,10 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+
 from ordenestrabajo.models import OrdenTrabajo
 from vehiculos.models import Vehiculo
 from .models import Documento
@@ -11,17 +13,21 @@ from .models import Documento
 ALLOWED_EXT = {"jpg", "jpeg", "png", "pdf"}
 MAX_SIZE_MB = 15
 
+
 def _ext_ok(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
+
 
 def _size_ok(fobj) -> bool:
     return fobj.size <= MAX_SIZE_MB * 1024 * 1024
 
+
+# ==========================================================
+# LISTAR DOCUMENTOS (Protegido)
+# ==========================================================
+@login_required(login_url="/inicio-sesion/")
 @require_http_methods(["GET"])
 def document_list(request):
-    """
-    GET /api/documentos/?ot_id=123  |  /api/documentos/?patente=ABCZ12
-    """
     ot_id = request.GET.get("ot_id")
     patente = request.GET.get("patente")
 
@@ -43,20 +49,18 @@ def document_list(request):
         "archivo": d.archivo.url if d.archivo else None,
         "creado_en": d.creado_en.isoformat(),
     } for d in qs]
+
     return JsonResponse({"success": True, "documentos": data})
 
+
+# ==========================================================
+# SUBIR DOCUMENTOS (Protegido)
+# ==========================================================
+@login_required(login_url="/inicio-sesion/")
 @csrf_exempt
 @require_http_methods(["POST"])
 def document_upload(request):
-    """
-    POST /api/documentos/upload/
-    form-data:
-      - archivo: file (jpg|jpeg|png|pdf; <= 15 MB)
-      - titulo: str
-      - tipo: FOTO|INFORME|OTRO (opcional)
-      - ot_id: int (opcional)
-      - patente: str (opcional)
-    """
+
     f = request.FILES.get("archivo")
     titulo = (request.POST.get("titulo") or "").strip()
     tipo = (request.POST.get("tipo") or "OTRO").strip().upper()
@@ -75,30 +79,35 @@ def document_upload(request):
     if ot_id:
         try:
             ot = OrdenTrabajo.objects.get(pk=int(ot_id))
-        except (ValueError, OrdenTrabajo.DoesNotExist):
+        except:
             return JsonResponse({"success": False, "message": "OT no encontrada"}, status=404)
+
     if patente:
         try:
             veh = Vehiculo.objects.get(pk=patente)
-        except Vehiculo.DoesNotExist:
+        except:
             return JsonResponse({"success": False, "message": "Vehículo no encontrado"}, status=404)
+
     if not ot and not veh:
         return JsonResponse({"success": False, "message": "Debe indicar ot_id o patente"}, status=400)
 
     d = Documento(ot=ot, patente=veh, titulo=titulo, tipo=tipo)
-    d.save()  # necesitamos ID para path dinámico
+    d.save()
 
-    # Guardado por storage (MEDIA_ROOT)
     subdir = f"ordenes/{d.ot_id}" if d.ot_id else f"vehiculos/{d.patente_id}"
     path = default_storage.save(f"{subdir}/{f.name}", ContentFile(f.read()))
+
     d.archivo.name = path
     d.save(update_fields=["archivo"])
 
     return JsonResponse({
         "success": True,
         "documento": {
-            "id": d.id, "titulo": d.titulo, "tipo": d.tipo,
-            "ot_id": d.ot_id, "patente": d.patente_id,
+            "id": d.id,
+            "titulo": d.titulo,
+            "tipo": d.tipo,
+            "ot_id": d.ot_id,
+            "patente": d.patente_id,
             "archivo": d.archivo.url if d.archivo else None,
             "creado_en": d.creado_en.isoformat()
         }

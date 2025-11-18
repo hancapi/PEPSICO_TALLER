@@ -1,0 +1,39 @@
+{% if ots %}
+    {% for ot in ots %}
+        <tr>
+            <td>#{{ ot.ot_id }}</td>
+            <td class="fw-bold">{{ ot.patente.patente }}</td>
+            <td>{{ ot.patente.marca }}</td>
+            <td>{{ ot.patente.modelo }}</td>
+            <td>
+                {{ ot.fecha_ingreso|date:"d/m/Y" }}
+                {{ ot.hora_ingreso|default:"--" }}
+            </td>
+
+            <td>
+                {% if ot.estado == "Finalizado" %}
+                    <span class="badge bg-success">Finalizado</span>
+                {% elif ot.estado == "En Taller" %}
+                    <span class="badge bg-warning text-dark">En Taller</span>
+                {% elif ot.estado == "En Proceso" %}
+                    <span class="badge bg-info text-dark">En Proceso</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ ot.estado }}</span>
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="{% url 'vehiculos:ficha_vehiculo' ot.patente.patente %}"
+                   class="btn btn-sm btn-outline-primary">
+                    Ver Ficha
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="7" class="text-center text-muted py-3">
+            No hay ingresos recientes.
+        </td>
+    </tr>
+{% endif %}
