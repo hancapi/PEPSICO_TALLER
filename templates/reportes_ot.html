@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}Reporte de Órdenes de Trabajo | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <!-- ============================
+       ENCABEZADO
+  ============================= -->
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">📋</div>
+      <div class="welcome-text">
+        <h1>Reporte de Órdenes de Trabajo</h1>
+        <p>Filtros avanzados + tabla detallada de OTs</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================
+       FILTROS SUPERIORES: rango fechas
+  ============================= -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="fw-bold mb-3">📅 Rango de fechas</h5>
+      <form class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label for="fromDate" class="form-label">Desde</label>
+          <input type="date" id="fromDate" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label for="toDate" class="form-label">Hasta</label>
+          <input type="date" id="toDate" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <button id="btnConsultar" class="btn btn-primary mt-4 w-100">
+            🔍 Consultar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================
+       KPIs RÁPIDOS
+  ============================= -->
+  <div class="stats-section mb-4">
+    <div class="stats-card">
+      <div class="stat-number" id="statVehiculos">—</div>
+      <div class="stat-label">Vehículos Totales</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stat-number" id="statTaller">—</div>
+      <div class="stat-label">En Taller</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stat-number" id="statProceso">—</div>
+      <div class="stat-label">OTs Activas</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stat-number" id="statEmpleados">—</div>
+      <div class="stat-label">Empleados Activos</div>
+    </div>
+  </div>
+
+  <!-- ============================
+       FILTROS DETALLADOS
+  ============================= -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="fw-bold mb-3">🎛️ Filtros adicionales</h5>
+      <form class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label for="fltPatente" class="form-label">Patente</label>
+          <input type="text" id="fltPatente" class="form-control" placeholder="Ej: KGJV93">
+        </div>
+
+        <div class="col-md-3">
+          <label for="fltEstado" class="form-label">Estado OT</label>
+          <select id="fltEstado" class="form-select">
+            <option value="">Todos</option>
+            {% for est in estados %}
+              <option value="{{ est }}">{{ est }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label for="fltTaller" class="form-label">Taller</label>
+          <select id="fltTaller" class="form-select">
+            <option value="">Todos</option>
+            {% for t in talleres %}
+              <option value="{{ t.taller_id }}">{{ t.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label for="fltCreador" class="form-label">RUT Creador</label>
+          <input type="text" id="fltCreador" class="form-control" placeholder="Ej: 11111111-1">
+        </div>
+
+        <div class="col-12 mt-3 d-flex gap-2">
+          <button id="btnFiltrar" class="btn btn-primary">
+            🔎 Aplicar filtros
+          </button>
+          <button type="button" id="btnLimpiar" class="btn btn-outline-secondary">
+            🧹 Limpiar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================
+       TABLA DE RESULTADOS
+  ============================= -->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Resultados</h5>
+        <span id="tablaCount" class="text-muted small"></span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead>
+            <tr>
+              <th># OT</th>
+              <th>Fecha/Hora ingreso</th>
+              <th>Patente</th>
+              <th>Vehículo</th>
+              <th>Taller</th>
+              <th>Estado</th>
+              <th>Mecánico</th>
+              <th>Creador</th>
+              <th>Fecha salida</th>
+              <th>Duración (días)</th>
+            </tr>
+          </thead>
+          <tbody id="tablaOtsBody">
+            <tr>
+              <td colspan="10" class="text-muted">Sin datos. Realiza una consulta.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================
+     JS del reporte OT
+============================= -->
+<script src="{% static 'js/reportes_ot.js' %}"></script>
+{% endblock %}

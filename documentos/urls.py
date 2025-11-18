@@ -1,10 +1,9 @@
-# documentos/urls.py
 from django.urls import path
-from . import views
+from . import api_views
 
-app_name = 'documentos'
+app_name = 'documentos_api'
 
 urlpatterns = [
-    path('', views.document_list, name='list'),         # GET ?ot_id=... | ?patente=...
-    path('upload/', views.document_upload, name='upload'),  # POST multipart
+    path('', api_views.api_documentos_list, name='list'),
+    path('upload/', api_views.api_documentos_upload, name='upload'),
 ]

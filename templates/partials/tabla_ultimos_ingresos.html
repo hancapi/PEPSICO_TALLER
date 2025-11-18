@@ -5,23 +5,34 @@
             <td class="fw-bold">{{ ot.patente.patente }}</td>
             <td>{{ ot.patente.marca }}</td>
             <td>{{ ot.patente.modelo }}</td>
+
             <td>
                 {{ ot.fecha_ingreso|date:"d/m/Y" }}
                 {{ ot.hora_ingreso|default:"--" }}
             </td>
 
+            <!-- =============================== -->
+            <!-- ESTADO REAL DEL VEHÍCULO       -->
+            <!-- =============================== -->
             <td>
-                {% if ot.estado == "Finalizado" %}
-                    <span class="badge bg-success">Finalizado</span>
-                {% elif ot.estado == "En Taller" %}
+                {% if ot.patente.estado == "Disponible" %}
+                    <span class="badge bg-success">Disponible</span>
+
+                {% elif ot.patente.estado == "En Taller" %}
                     <span class="badge bg-warning text-dark">En Taller</span>
-                {% elif ot.estado == "En Proceso" %}
+
+                {% elif ot.patente.estado == "En Proceso" %}
                     <span class="badge bg-info text-dark">En Proceso</span>
+
+                {% elif ot.patente.estado == "Pausado" %}
+                    <span class="badge bg-secondary text-dark">Pausado</span>
+
                 {% else %}
-                    <span class="badge bg-secondary">{{ ot.estado }}</span>
+                    <span class="badge bg-secondary">{{ ot.patente.estado }}</span>
                 {% endif %}
             </td>
 
+            <!-- BOTÓN VER FICHA -->
             <td>
                 <a href="/ficha-vehiculo/?patente={{ ot.patente.patente }}"
                    class="btn btn-sm btn-outline-primary">

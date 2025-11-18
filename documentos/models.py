@@ -53,12 +53,12 @@ class Documento(models.Model):
         managed = False   
 
     def save(self, *args, **kwargs):
-
-        # Si no tiene OT pero sí patente → va a carpeta de vehículo
-        if self.ot is None and self.patente_id is not None:
+        if self.ot:
+            self.archivo.field.upload_to = upload_to_ot
+        else:
             self.archivo.field.upload_to = upload_to_vehiculo
-
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         ref = f"OT {self.ot_id}" if self.ot_id else f"Veh {self.patente_id}"

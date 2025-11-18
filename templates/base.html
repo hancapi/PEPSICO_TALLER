@@ -35,14 +35,32 @@
 <div class="sidebar" id="sidebar">
     <h4>🚗 Taller PepsiCo Chile</h4>
 
+    <!-- Inicio -->
     <a href="{% url 'inicio' %}"
        class="nav-link {% if menu_active == 'inicio' %}active{% endif %}">
         🏠 Inicio
     </a>
+
+    <!-- Chat -->
     <a href="{% url 'chat:chat' %}"
        class="nav-link {% if menu_active == 'chat' %}active{% endif %}">
         💬 Chat
     </a>
+
+    <!-- Dashboard de Reportes (gráficos) -->
+    <a href="{% url 'reportes:reportes' %}"
+       class="nav-link 
+              {% if menu_active == 'reportes' and request.path == '/reportes/' %}active{% endif %}">
+        📊 Dashboard de Reportes
+    </a>
+
+    <!-- Reporte de Órdenes de Trabajo (CU07) -->
+    <a href="{% url 'reportes:reportes_ot' %}"
+       class="nav-link 
+              {% if menu_active == 'reportes' and '/reportes/ordenes-trabajo' in request.path %}active{% endif %}">
+        📋 Reporte de OTs
+    </a>
+
 </div>
 
 <!-- ====================================================

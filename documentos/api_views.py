@@ -1,114 +1,160 @@
-# documentos/api_views.py
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
 from django.contrib.auth.decorators import login_required
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-
-from ordenestrabajo.models import OrdenTrabajo
-from vehiculos.models import Vehiculo
 from .models import Documento
-
-ALLOWED_EXT = {"jpg", "jpeg", "png", "pdf"}
-MAX_SIZE_MB = 15
-
-
-def _ext_ok(filename: str) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
-
-
-def _size_ok(fobj) -> bool:
-    return fobj.size <= MAX_SIZE_MB * 1024 * 1024
+from ordenestrabajo.models import OrdenTrabajo
 
 
 # ==========================================================
-# LISTAR DOCUMENTOS (Protegido)
+# GET — AGRUPAR DOCUMENTOS (OT actual, finalizadas, vehículo)
 # ==========================================================
-@login_required(login_url="/inicio-sesion/")
-@require_http_methods(["GET"])
-def document_list(request):
-    ot_id = request.GET.get("ot_id")
+@login_required
+@require_GET
+def api_documentos_list(request):
+
+    # Normalizar ot_id (puede venir "", "null", etc.)
+    ot_id_raw = request.GET.get("ot_id")
+    try:
+        ot_id_actual = int(ot_id_raw) if ot_id_raw not in (None, "", "null") else None
+    except (TypeError, ValueError):
+        ot_id_actual = None
+
     patente = request.GET.get("patente")
 
-    if not ot_id and not patente:
-        return JsonResponse({"success": False, "message": "Debe indicar ot_id o patente"}, status=400)
+    if not patente:
+        return JsonResponse(
+            {"success": False, "message": "Parámetro patente requerido"},
+            status=400
+        )
 
-    qs = Documento.objects.all().order_by("-creado_en")
-    if ot_id:
-        qs = qs.filter(ot_id=ot_id)
-    if patente:
-        qs = qs.filter(patente_id=patente)
+    # -------------------------------------------
+    # 1) DOCUMENTOS OT ACTUAL
+    # -------------------------------------------
+    docs_actual = []
+    if ot_id_actual is not None:
+        qs_actual = Documento.objects.filter(ot_id=ot_id_actual).order_by("-creado_en")
+        docs_actual = [
+            {
+                "id": d.id,
+                "titulo": d.titulo,
+                "tipo": d.tipo,
+                "archivo": d.archivo.url if d.archivo else "",
+                "creado_en": d.creado_en.strftime("%Y-%m-%d %H:%M"),
+                "ot_id": d.ot_id,
+            }
+            for d in qs_actual
+        ]
 
-    data = [{
-        "id": d.id,
-        "titulo": d.titulo,
-        "tipo": d.tipo,
-        "ot_id": d.ot_id,
-        "patente": d.patente_id,
-        "archivo": d.archivo.url if d.archivo else None,
-        "creado_en": d.creado_en.isoformat(),
-    } for d in qs]
+    # -------------------------------------------
+    # 2) DOCUMENTOS OTs FINALIZADAS (agrupados)
+    # -------------------------------------------
+    ots_finalizadas_qs = OrdenTrabajo.objects.filter(
+        patente_id=patente,
+        estado="Finalizado"
+    ).order_by("-fecha_ingreso", "-ot_id")
 
-    return JsonResponse({"success": True, "documentos": data})
+    # Si hay OT actual, la excluimos
+    if ot_id_actual is not None:
+        ots_finalizadas_qs = ots_finalizadas_qs.exclude(ot_id=ot_id_actual)
+
+    grupos_finalizadas = []
+
+    for ot in ots_finalizadas_qs:
+        docs_ot = Documento.objects.filter(ot_id=ot.ot_id).order_by("-creado_en")
+
+        if docs_ot.exists():
+            grupos_finalizadas.append({
+                "ot_id": ot.ot_id,
+                "fecha": ot.fecha_ingreso.strftime("%Y-%m-%d"),
+                "docs": [
+                    {
+                        "id": d.id,
+                        "titulo": d.titulo,
+                        "tipo": d.tipo,
+                        "archivo": d.archivo.url if d.archivo else "",
+                        "creado_en": d.creado_en.strftime("%Y-%m-%d %H:%M"),
+                    }
+                    for d in docs_ot
+                ]
+            })
+
+    # -------------------------------------------
+    # 3) DOCUMENTOS DEL VEHÍCULO (sin OT)
+    # -------------------------------------------
+    docs_vehiculo = Documento.objects.filter(
+        patente_id=patente,
+        ot_id__isnull=True
+    ).order_by("-creado_en")
+
+    lista_docs_vehiculo = [
+        {
+            "id": d.id,
+            "titulo": d.titulo,
+            "tipo": d.tipo,
+            "archivo": d.archivo.url if d.archivo else "",
+            "creado_en": d.creado_en.strftime("%Y-%m-%d %H:%M"),
+        }
+        for d in docs_vehiculo
+    ]
+
+    # -------------------------------------------
+    # RESPUESTA FINAL (formato que consume ficha_vehiculo.js)
+    # -------------------------------------------
+    return JsonResponse({
+        "success": True,
+        "actual": docs_actual,
+        "finalizadas": grupos_finalizadas,
+        "vehiculo": lista_docs_vehiculo,
+    })
 
 
 # ==========================================================
-# SUBIR DOCUMENTOS (Protegido)
+# POST — SUBIR DOCUMENTO
 # ==========================================================
-@login_required(login_url="/inicio-sesion/")
-@csrf_exempt
-@require_http_methods(["POST"])
-def document_upload(request):
+@login_required
+@require_POST
+def api_documentos_upload(request):
 
-    f = request.FILES.get("archivo")
-    titulo = (request.POST.get("titulo") or "").strip()
-    tipo = (request.POST.get("tipo") or "OTRO").strip().upper()
-    ot_id = request.POST.get("ot_id")
+    archivo = request.FILES.get("archivo")
+    titulo = request.POST.get("titulo")
+    tipo = request.POST.get("tipo") or "OTRO"
+
+    # Normalizar ot_id igual que arriba
+    ot_id_raw = request.POST.get("ot_id")
+    try:
+        ot_id = int(ot_id_raw) if ot_id_raw not in (None, "", "null") else None
+    except (TypeError, ValueError):
+        ot_id = None
+
     patente = request.POST.get("patente")
 
-    if not f or not titulo:
-        return JsonResponse({"success": False, "message": "archivo y titulo son obligatorios"}, status=400)
-    if not _ext_ok(f.name):
-        return JsonResponse({"success": False, "message": "Extensión no permitida (jpg, jpeg, png, pdf)"}, status=400)
-    if not _size_ok(f):
-        return JsonResponse({"success": False, "message": f"Tamaño máximo {MAX_SIZE_MB}MB"}, status=400)
+    if not archivo:
+        return JsonResponse(
+            {"success": False, "message": "Debe seleccionar un archivo."}
+        )
 
-    ot = None
-    veh = None
-    if ot_id:
-        try:
-            ot = OrdenTrabajo.objects.get(pk=int(ot_id))
-        except:
-            return JsonResponse({"success": False, "message": "OT no encontrada"}, status=404)
+    if not titulo:
+        return JsonResponse(
+            {"success": False, "message": "Debe ingresar un título."}
+        )
 
-    if patente:
-        try:
-            veh = Vehiculo.objects.get(pk=patente)
-        except:
-            return JsonResponse({"success": False, "message": "Vehículo no encontrado"}, status=404)
-
-    if not ot and not veh:
-        return JsonResponse({"success": False, "message": "Debe indicar ot_id o patente"}, status=400)
-
-    d = Documento(ot=ot, patente=veh, titulo=titulo, tipo=tipo)
-    d.save()
-
-    subdir = f"ordenes/{d.ot_id}" if d.ot_id else f"vehiculos/{d.patente_id}"
-    path = default_storage.save(f"{subdir}/{f.name}", ContentFile(f.read()))
-
-    d.archivo.name = path
-    d.save(update_fields=["archivo"])
+    doc = Documento.objects.create(
+        archivo=archivo,
+        titulo=titulo,
+        tipo=tipo,
+        ot_id=ot_id,
+        patente_id=patente or None,
+    )
 
     return JsonResponse({
         "success": True,
         "documento": {
-            "id": d.id,
-            "titulo": d.titulo,
-            "tipo": d.tipo,
-            "ot_id": d.ot_id,
-            "patente": d.patente_id,
-            "archivo": d.archivo.url if d.archivo else None,
-            "creado_en": d.creado_en.isoformat()
+            "id": doc.id,
+            "titulo": doc.titulo,
+            "tipo": doc.tipo,
+            "archivo": doc.archivo.url if doc.archivo else "",
+            "creado_en": doc.creado_en.strftime("%Y-%m-%d %H:%M"),
+            "ot_id": doc.ot_id,
+            "patente": doc.patente_id,
         }
-    }, status=201)
+    })

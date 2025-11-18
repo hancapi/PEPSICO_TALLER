@@ -163,31 +163,37 @@ def existe_vehiculo(request):
 
 
 # ==========================================================
-# API Ficha datos generales + OT actual
-# 🔧 SOLO AQUÍ SE MODIFICÓ — lo demás NO se tocó
+# API Ficha datos generales + OT actual + Documentos agrupados  🔥
 # ==========================================================
 
 @require_GET
 @login_required
 @todos_roles
 def api_ficha(request):
-    """Ficha de vehículo"""
+    """Ficha completa del vehículo"""
     patente = (request.GET.get('patente') or "").strip().upper()
     if not patente:
         return JsonResponse({'success': False, 'message': 'Parámetro patente requerido'}, status=400)
 
+    # VEHÍCULO
     v = Vehiculo.objects.filter(pk=patente).first()
     if not v:
         return JsonResponse({
             'success': True,
             'vehiculo': None,
             'kpis': {'ots': 0},
-            'ot_actual': None
+            'ot_actual': None,
+            'documentos': {
+                "actual": [],
+                "finalizadas": [],
+                "vehiculo": []
+            }
         })
 
+    # KPI
     kpi_ots = OrdenTrabajo.objects.filter(patente_id=patente).count()
 
-    # 🔧 CORREGIDO: agregar todos los estados activos
+    # OT ACTUAL
     estados_activos = ["Pendiente", "En Taller", "En Proceso", "Pausado"]
 
     ot_actual = (
@@ -200,11 +206,10 @@ def api_ficha(request):
     ot_payload = None
     if ot_actual:
         taller_nombre = (
-            Taller.objects
-            .filter(pk=ot_actual.taller_id)
-            .values_list('nombre', flat=True)
-            .first()
+            Taller.objects.filter(pk=ot_actual.taller_id)
+            .values_list('nombre', flat=True).first()
         )
+
         ot_payload = {
             'id': ot_actual.ot_id,
             'fecha': ot_actual.fecha_ingreso.isoformat(),
@@ -214,6 +219,58 @@ def api_ficha(request):
             'taller_nombre': taller_nombre,
         }
 
+    # DOCUMENTOS AGRUPADOS
+    from documentos.models import Documento
+
+    # Documentos OT actual
+    docs_ot_actual = []
+    if ot_actual:
+        docs_ot_actual = [
+            {
+                "id": d.id,
+                "titulo": d.titulo,
+                "tipo": d.tipo,
+                "archivo": d.archivo.url if d.archivo else "",
+                "creado_en": d.creado_en.strftime("%Y-%m-%d %H:%M")
+            }
+            for d in Documento.objects.filter(ot_id=ot_actual.ot_id).order_by("-creado_en")
+        ]
+
+    # Documentos de OTs finalizadas
+    ots_finalizadas_ids = list(
+        OrdenTrabajo.objects.filter(
+            patente_id=patente,
+            estado="Finalizado"
+        ).values_list("ot_id", flat=True)
+    )
+
+    docs_ots_finalizadas = [
+        {
+            "id": d.id,
+            "titulo": d.titulo,
+            "tipo": d.tipo,
+            "archivo": d.archivo.url if d.archivo else "",
+            "creado_en": d.creado_en.strftime("%Y-%m-%d %H:%M"),
+            "ot_id": d.ot_id
+        }
+        for d in Documento.objects.filter(ot_id__in=ots_finalizadas_ids).order_by("-creado_en")
+    ]
+
+    # Documentos sueltos (vehículo)
+    docs_vehiculo = [
+        {
+            "id": d.id,
+            "titulo": d.titulo,
+            "tipo": d.tipo,
+            "archivo": d.archivo.url if d.archivo else "",
+            "creado_en": d.creado_en.strftime("%Y-%m-%d %H:%M")
+        }
+        for d in Documento.objects.filter(patente_id=patente, ot__isnull=True).order_by("-creado_en")
+    ]
+
+    # ======================================================
+    # 🚀 FIX ÚNICO — CLAVES CORRECTAS QUE EL JS ESPERA
+    # ======================================================
     return JsonResponse({
         'success': True,
         'vehiculo': {
@@ -226,7 +283,13 @@ def api_ficha(request):
             'estado': v.estado,
         },
         'kpis': {'ots': kpi_ots},
-        'ot_actual': ot_payload
+        'ot_actual': ot_payload,
+
+        'documentos': {
+            "actual": docs_ot_actual,
+            "finalizadas": docs_ots_finalizadas,
+            "vehiculo": docs_vehiculo
+        }
     })
 
 
@@ -263,7 +326,6 @@ def api_ficha_ots(request):
                                       .values_list('taller_id', flat=True))
             qs = qs.filter(taller_id__in=ids or [-1])
 
-    # Map talleres
     taller_ids = list(qs.values_list('taller_id', flat=True))
     taller_map = dict(Taller.objects.filter(taller_id__in=taller_ids)
                                     .values_list('taller_id', 'nombre'))

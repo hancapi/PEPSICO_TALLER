@@ -150,7 +150,6 @@ def api_crear_ingreso(request):
         }
     }, status=201)
 
-
 # ==========================================================
 # 📋 API Últimas OT cuya última OT esté finalizada + vehículo disponible
 # ==========================================================
@@ -158,10 +157,10 @@ def api_crear_ingreso(request):
 @require_GET
 def api_ultimas_ot(request):
 
-    # 1️⃣ Subquery: obtener la última OT por vehículo
+    # 1️⃣ Subquery: obtener la última OT por vehículo (patente_id)
     subquery = (
         OrdenTrabajo.objects
-        .values("patente")
+        .values("patente_id")
         .annotate(ultima_ot=Max("ot_id"))
         .values_list("ultima_ot", flat=True)
     )
@@ -171,17 +170,18 @@ def api_ultimas_ot(request):
         OrdenTrabajo.objects
         .select_related("patente", "taller")
         .filter(
-            ot_id__in=subquery,
-            estado="Finalizado",
-            patente__estado="Disponible"
+            ot_id__in=subquery,       # solo la última OT del vehículo
+            estado="Finalizado",      # esa OT debe estar finalizada
+            patente__estado="Disponible"  # vehículo debe estar disponible
         )
         .order_by("-ot_id")[:15]
     )
 
-    html = render_to_string("partials/tabla_ultimos_ingresos.html", {"ots": ots})
+    html = render_to_string(
+        "partials/tabla_ultimos_ingresos.html",
+        {"ots": ots}
+    )
     return JsonResponse({"success": True, "html": html})
-
-
 # ==========================================================
 # 🛠 API Asignar OT (Supervisor)
 # ==========================================================

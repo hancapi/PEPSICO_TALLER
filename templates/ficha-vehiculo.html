@@ -52,7 +52,8 @@
 
                 <div class="col-md-3 mb-2"><strong>Tipo:</strong> <span id="v_tipo"></span></div>
                 <div class="col-md-3 mb-2"><strong>Ubicación:</strong> <span id="v_ubicacion"></span></div>
-                <div class="col-md-3 mb-2"><strong>Estado Actual:</strong> 
+                <div class="col-md-3 mb-2">
+                    <strong>Estado Actual:</strong> 
                     <span id="v_estado" class="badge bg-secondary"></span>
                 </div>
             </div>
@@ -91,7 +92,7 @@
         </div>
 
         <!-- ============================ -->
-        <!-- DOCUMENTOS ASOCIADOS -->
+        <!-- 📎 DOCUMENTOS ASOCIADOS -->
         <!-- ============================ -->
         <div class="card shadow-sm p-4 mb-4" id="cardDocumentos" style="display:none;">
             <h5 class="fw-bold mb-3">📎 Documentos Asociados</h5>
@@ -100,10 +101,12 @@
             <form id="formUploadDoc" enctype="multipart/form-data" class="mb-3">
                 <div class="row g-2">
                     <div class="col-md-4">
-                        <input type="file" id="docArchivo" name="archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.docx">
+                        <input type="file" id="docArchivo" name="archivo" class="form-control"
+                               accept=".pdf,.jpg,.jpeg,.png,.docx">
                     </div>
                     <div class="col-md-4">
-                        <input type="text" id="docTitulo" name="titulo" class="form-control" placeholder="Título del documento">
+                        <input type="text" id="docTitulo" name="titulo" class="form-control"
+                               placeholder="Título del documento">
                     </div>
                     <div class="col-md-3">
                         <select id="docTipo" class="form-select">
@@ -119,8 +122,15 @@
                 <div id="docMsg" class="mt-2"></div>
             </form>
 
-            <!-- LISTA DOCUMENTOS -->
-            <ul id="listaDocumentos" class="list-group"></ul>
+            <!-- CONTENEDOR DOCUMENTOS (3 GRUPOS) -->
+            <!-- IMPORTANTE: ahora es un <div>, no <ul> -->
+            <div id="listaDocumentos" class="list-group"></div>
+
+            <!-- Aquí el JS insertará dinámicamente:
+                 - Sección OT actual (li dentro del div)
+                 - Bloques de OTs finalizadas (div)
+                 - Bloques de documentos de vehículo (div)
+            -->
         </div>
 
         <!-- PANEL CAMBIO ESTADO -->

@@ -1,8 +1,10 @@
 # reportes/views.py
+from datetime import datetime, timedelta
+
+from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, F, ExpressionWrapper, DurationField
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 
 from vehiculos.models import Vehiculo
 from talleres.models import Taller
@@ -10,11 +12,9 @@ from ordenestrabajo.models import OrdenTrabajo
 from autenticacion.models import Empleado
 from autenticacion.roles import supervisor_only
 
-from datetime import datetime, timedelta
-
 
 # ==============================================================
-# 🔹 Página HTML
+# 🔹 Página HTML: Dashboard de Reportes (gráficos)
 # ==============================================================
 @login_required(login_url='/inicio-sesion/')
 @supervisor_only
@@ -25,12 +25,36 @@ def reportes_page(request):
 
 
 # ==============================================================
+# 🔹 Página HTML: Reporte de Órdenes de Trabajo (CU07)
+#     /reportes/ordenes-trabajo/
+# ==============================================================
+@login_required(login_url='/inicio-sesion/')
+@supervisor_only
+def reportes_ot_page(request):
+    """
+    Página con filtros + tabla de OTs.
+    Usa las APIs:
+      - /reportes/api/summary/
+      - /reportes/api/ots/
+    y el JS: static/js/reportes_ot.js
+    """
+    estados = [choice[0] for choice in OrdenTrabajo.ESTADO_OT_CHOICES]
+    talleres = Taller.objects.all().order_by("nombre")
+
+    return render(request, "reportes_ot.html", {
+        "menu_active": "reportes",
+        "estados": estados,
+        "talleres": talleres,
+    })
+
+
+# ==============================================================
 # 🟦 Helper: parseo fechas
 # ==============================================================
 def _parse_date(s):
     try:
         return datetime.strptime(s, "%Y-%m-%d").date()
-    except:
+    except Exception:
         return None
 
 
@@ -38,7 +62,7 @@ def _date_range(request):
     today = datetime.today().date()
 
     dfrom = _parse_date(request.GET.get("from") or "") or (today - timedelta(days=30))
-    dto   = _parse_date(request.GET.get("to") or "") or today
+    dto = _parse_date(request.GET.get("to") or "") or today
 
     if dfrom > dto:
         dfrom, dto = dto, dfrom
@@ -47,9 +71,9 @@ def _date_range(request):
 
 
 # ==============================================================
-# 🟦 NUEVA API: SUMMARY (lo que reportes.js espera)
+# 🟦 API: SUMMARY (usada por reportes_ot.js)
 # ==============================================================
-@login_required
+@login_required(login_url='/inicio-sesion/')
 @supervisor_only
 def api_summary(request):
     dfrom, dto = _date_range(request)
@@ -76,21 +100,22 @@ def api_summary(request):
 
 
 # ==============================================================
-# 🟦 NUEVA API: Lista de OTs filtrada (lo que reportes.js usa)
+# 🟦 API: Lista de OTs filtrada (usada por reportes_ot.js)
 # ==============================================================
-@login_required
+@login_required(login_url='/inicio-sesion/')
 @supervisor_only
 def api_ots(request):
     dfrom, dto = _date_range(request)
 
     patente = (request.GET.get("patente") or "").strip().upper()
-    estado  = (request.GET.get("estado") or "").strip()
-    taller  = (request.GET.get("taller_id") or "").strip()
+    estado = (request.GET.get("estado") or "").strip()
+    taller = (request.GET.get("taller_id") or "").strip()
     creador = (request.GET.get("rut_creador") or "").strip()
 
-    qs = OrdenTrabajo.objects.filter(
-        fecha_ingreso__range=(dfrom, dto)
-    ).select_related("patente", "taller", "rut_creador")
+    qs = (
+        OrdenTrabajo.objects.filter(fecha_ingreso__range=(dfrom, dto))
+        .select_related("patente", "taller", "rut", "rut_creador")
+    )
 
     if patente:
         qs = qs.filter(patente_id=patente)
@@ -102,28 +127,41 @@ def api_ots(request):
         if taller.isdigit():
             qs = qs.filter(taller_id=int(taller))
         else:
-            ids = list(Taller.objects.filter(nombre__icontains=taller)
-                                    .values_list("taller_id", flat=True))
+            ids = list(
+                Taller.objects.filter(nombre__icontains=taller)
+                .values_list("taller_id", flat=True)
+            )
             qs = qs.filter(taller_id__in=ids or [-1])
 
     if creador:
         qs = qs.filter(rut_creador__rut=creador)
 
-    items = [{
-        "id": ot.ot_id,
-        "fecha": ot.fecha_ingreso.isoformat(),
-        "hora": ot.hora_ingreso.strftime("%H:%M") if ot.hora_ingreso else None,
-        "patente": ot.patente_id,
-        "taller_nombre": ot.taller.nombre if ot.taller else "",
-        "estado": ot.estado,
-        "rut_creador": getattr(ot.rut_creador, "rut", "")
-    } for ot in qs.order_by("-fecha_ingreso", "-hora_ingreso")]
+    items = []
+    for ot in qs.order_by("-fecha_ingreso", "-hora_ingreso", "-ot_id"):
+        # tiempo total en días (si tiene fecha_salida)
+        duracion_dias = None
+        if ot.fecha_salida and ot.fecha_ingreso:
+            duracion_dias = (ot.fecha_salida - ot.fecha_ingreso).days
+
+        items.append({
+            "id": ot.ot_id,
+            "fecha": ot.fecha_ingreso.isoformat(),
+            "hora": ot.hora_ingreso.strftime("%H:%M") if ot.hora_ingreso else "",
+            "patente": ot.patente_id,
+            "vehiculo": f"{ot.patente.marca} {ot.patente.modelo}" if ot.patente else "",
+            "taller_nombre": ot.taller.nombre if ot.taller else "",
+            "estado": ot.estado,
+            "rut_mecanico": getattr(ot.rut, "rut", ""),
+            "rut_creador": getattr(ot.rut_creador, "rut", ""),
+            "fecha_salida": ot.fecha_salida.isoformat() if ot.fecha_salida else "",
+            "duracion_dias": duracion_dias,
+        })
 
     return JsonResponse({"success": True, "items": items})
 
 
 # ==============================================================
-# 🔹 API: Resumen Global (ya existía)
+# 🔹 API: Resumen Global (dashboard)
 # ==============================================================
 @login_required(login_url='/inicio-sesion/')
 @supervisor_only
@@ -150,7 +188,7 @@ def api_resumen_global(request):
 
 
 # ==============================================================
-# 🔹 API: Resumen por Taller
+# 🔹 API: Resumen por Taller (dashboard)
 # ==============================================================
 @login_required(login_url='/inicio-sesion/')
 @supervisor_only
@@ -175,7 +213,7 @@ def api_resumen_talleres(request):
 
 
 # ==============================================================
-# 🔹 API: Promedio de tiempos
+# 🔹 API: Promedio de tiempos (dashboard)
 # ==============================================================
 @login_required(login_url='/inicio-sesion/')
 @supervisor_only

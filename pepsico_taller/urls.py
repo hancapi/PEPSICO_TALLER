@@ -12,16 +12,6 @@ from reportes.views import reportes_page                # reportes REAL
 from django.conf import settings
 from django.conf.urls.static import static
 
-
-# ==========================================================
-# ❌ IMPORTS OBSOLETOS (SE ELIMINAN DEFINITIVAMENTE)
-# ==========================================================
-# from autenticacion.views_pages import registro_taller_page   # ← YA NO SE USA
-# from autenticacion.views_pages import ficha_vehiculo_page    # ← YA NO SE USA
-# from autenticacion.views_pages import reportes_page          # ← YA NO SE USA
-# ✔ Eliminados porque ya NO deben existir duplicados de vistas HTML.
-
-
 urlpatterns = [
     path('admin/', admin.site.urls),
 
@@ -41,9 +31,6 @@ urlpatterns = [
     # ==========================================================
     path('registro-taller/', registro_taller_page, name='registro-taller'),
 
-    # ❌ VERSIÓN ANTIGUA — YA NO SE USA
-    # path('registro-taller/', views_pages.registro_taller_page, name='registro-taller-old'),
-
     # ==========================================================
     # INGRESO VEHÍCULOS
     # ==========================================================
@@ -54,16 +41,10 @@ urlpatterns = [
     # ==========================================================
     path('ficha-vehiculo/', ficha_vehiculo, name='ficha-vehiculo'),
 
-    # ❌ VERSIÓN ANTIGUA — YA NO SE USA
-    # path('ficha-vehiculo/', views_pages.ficha_vehiculo_page, name='ficha-vehiculo-old'),
-
     # ==========================================================
     # REPORTES — (OFICIAL – reportes/views.py)
     # ==========================================================
     path('reportes-dashboard/', reportes_page, name='reportes-dashboard'),
-
-    # ❌ VERSIÓN ANTIGUA — YA NO SE USA
-    # path('reportes-dashboard/', views_pages.reportes_page, name='reportes-dashboard-old'),
 
     # ==========================================================
     # APPS HTML
@@ -72,13 +53,12 @@ urlpatterns = [
     path('vehiculos/', include('vehiculos.urls', namespace='vehiculos')),
     path('talleres/', include('talleres.urls', namespace='talleres')),
     path('reportes/', include('reportes.urls', namespace='reportes')),
-    path('documentos/', include('documentos.urls', namespace='documentos_html')),
 
     # ==========================================================
     # APIs
     # ==========================================================
     path('api/ordenestrabajo/', include('ordenestrabajo.urls', namespace='ordenestrabajo')),
-    path('api/documentos/', include('documentos.api_urls', namespace='documentos_api')),
+    path('api/documentos/', include('documentos.urls', namespace='documentos')),
     path('api/taller/', include('talleres.urls_api')),
     # ==========================================================
     # ASIGNACIÓN TALLER — (OFICIAL)
