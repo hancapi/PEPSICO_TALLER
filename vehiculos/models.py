@@ -2,7 +2,7 @@
 from django.db import models
 
 # ==========================================================
-# Opciones (CHOICES) corporativas PepsiCo
+# Opciones corporativas PepsiCo — NORMALIZADAS
 # ==========================================================
 TIPO_CHOICES = [
     ("Camión", "Camión"),
@@ -12,11 +12,12 @@ TIPO_CHOICES = [
     ("Bus", "Bus"),
 ]
 
-ESTADO_CHOICES = [
+# Estados reales usados por la plataforma
+ESTADO_VEHICULO_CHOICES = [
     ("Disponible", "Disponible"),
     ("En Taller", "En Taller"),
     ("En Proceso", "En Proceso"),
-    ("Pendiente", "Pendiente"),
+    ("Pausado", "Pausado"),
     ("Fuera de Servicio", "Fuera de Servicio"),
 ]
 
@@ -29,17 +30,11 @@ UBICACION_CHOICES = [
 ]
 
 
-# ==========================================================
-# Modelo Vehículo
-# ==========================================================
 class Vehiculo(models.Model):
 
-    # 🔥 ESTA LÍNEA FALTABA 🔥
-    ESTADO_CHOICES = ESTADO_CHOICES
-
     class Meta:
-        managed = False                # Django NO maneja esta tabla
-        db_table = 'vehiculos'         # Nombre real de la tabla
+        managed = False
+        db_table = 'vehiculos'
 
     patente = models.CharField(max_length=20, primary_key=True)
     marca = models.CharField(max_length=50)
@@ -56,7 +51,7 @@ class Vehiculo(models.Model):
 
     estado = models.CharField(
         max_length=50,
-        choices=ESTADO_CHOICES,
+        choices=ESTADO_VEHICULO_CHOICES,
         default="Disponible"
     )
 

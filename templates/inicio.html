@@ -7,7 +7,6 @@
 {% block content %}
 <div class="page-container fade-in">
 
-
     <!-- ======================================================
          TARJETA DE BIENVENIDA
     ====================================================== -->
@@ -21,7 +20,6 @@
             </div>
         </div>
     </div>
-
 
     <!-- ======================================================
          INFORMACIÓN DEL EMPLEADO
@@ -45,7 +43,6 @@
         </div>
     </div>
 
-
     <!-- ======================================================
          KPIS (solo supervisor)
     ====================================================== -->
@@ -53,35 +50,34 @@
     <div class="stats-section mb-4">
 
         <div class="stats-card">
-            <div class="stat-number">{{ kpis.total_vehiculos }}</div>
+            <div class="stat-number" id="statVehiculos">{{ kpis.total_vehiculos }}</div>
             <div class="stat-label">Vehículos Totales</div>
         </div>
 
         <div class="stats-card">
-            <div class="stat-number text-pastel-red">{{ kpis.en_taller }}</div>
+            <div class="stat-number text-pastel-red" id="statTaller">{{ kpis.en_taller }}</div>
             <div class="stat-label">En Taller</div>
         </div>
 
         <div class="stats-card">
-            <div class="stat-number">{{ kpis.en_proceso }}</div>
+            <div class="stat-number" id="statProceso">{{ kpis.en_proceso }}</div>
             <div class="stat-label">En Proceso</div>
         </div>
 
         <div class="stats-card">
-            <div class="stat-number">{{ kpis.empleados_activos }}</div>
+            <div class="stat-number" id="statEmpleados">{{ kpis.total_empleados }}</div>
             <div class="stat-label">Empleados Activos</div>
         </div>
 
     </div>
     {% endif %}
 
-
     <!-- ======================================================
          TARJETAS DE ACCESO RÁPIDO
     ====================================================== -->
     <div class="features-section">
 
-        <!-- 🔵 NUEVA TARJETA: Asignación Taller (solo Supervisor) -->
+        <!-- 🔵 Asignación Taller (solo supervisor) -->
         {% if empleado.cargo|upper == "SUPERVISOR" %}
         <div class="card feature-card">
             <div class="card-body">
@@ -94,6 +90,7 @@
         </div>
         {% endif %}
 
+        <!-- 🛠 Registro Taller (supervisor/mecánico) -->
         {% if empleado.cargo|upper == "SUPERVISOR" or empleado.cargo|upper == "MECANICO" %}
         <div class="card feature-card">
             <div class="card-body">
@@ -106,6 +103,7 @@
         </div>
         {% endif %}
 
+        <!-- 🚗 Ingreso de vehículos -->
         {% if empleado.cargo|upper == "CHOFER" or empleado.cargo|upper == "SUPERVISOR" %}
         <div class="card feature-card">
             <div class="card-body">
@@ -118,6 +116,7 @@
         </div>
         {% endif %}
 
+        <!-- 📄 Ficha Vehículo -->
         <div class="card feature-card">
             <div class="card-body">
                 <h5 class="fw-bold">📄 Ficha Vehículo</h5>
@@ -128,6 +127,7 @@
             </div>
         </div>
 
+        <!-- 📊 Reportes -->
         {% if empleado.cargo|upper == "SUPERVISOR" %}
         <div class="card feature-card">
             <div class="card-body">
@@ -143,4 +143,8 @@
     </div>
 
 </div>
+
+<!-- Script de KPIs -->
+<script src="{% static 'js/dashboard.js' %}"></script>
+
 {% endblock %}
