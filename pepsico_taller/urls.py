@@ -80,7 +80,6 @@ urlpatterns = [
     path('api/ordenestrabajo/', include('ordenestrabajo.urls', namespace='ordenestrabajo')),
     path('api/documentos/', include('documentos.api_urls', namespace='documentos_api')),
     path('api/taller/', include('talleres.urls_api')),
-
     # ==========================================================
     # ASIGNACIÓN TALLER — (OFICIAL)
     # ==========================================================

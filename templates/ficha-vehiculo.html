@@ -6,9 +6,7 @@
 {% block content %}
 <div class="page-container fade-in">
 
-    <!-- ============================ -->
     <!-- HEADER -->
-    <!-- ============================ -->
     <div class="welcome-card mb-4">
         <div class="welcome-content">
             <div class="welcome-avatar">🚗</div>
@@ -19,9 +17,7 @@
         </div>
     </div>
 
-    <!-- ============================ -->
-    <!-- BUSCADOR DE PATENTE -->
-    <!-- ============================ -->
+    <!-- BUSCADOR -->
     <div class="card shadow-sm mb-4 p-4">
         <h5 class="fw-bold mb-3">🔍 Buscar Vehículo</h5>
 
@@ -34,18 +30,14 @@
             </div>
 
             <div class="col-md-2">
-                <button id="btnBuscar" class="btn btn-primary w-100">
-                    Buscar
-                </button>
+                <button id="btnBuscar" class="btn btn-primary w-100">Buscar</button>
             </div>
         </div>
 
         <div id="alertBox" class="mt-3"></div>
     </div>
 
-    <!-- ============================ -->
     <!-- INFO VEHÍCULO -->
-    <!-- ============================ -->
     <div id="infoVehiculo" class="hidden">
 
         <!-- CARD PRINCIPAL -->
@@ -99,8 +91,39 @@
         </div>
 
         <!-- ============================ -->
-        <!-- PANEL CAMBIO DE ESTADO OT -->
+        <!-- DOCUMENTOS ASOCIADOS -->
         <!-- ============================ -->
+        <div class="card shadow-sm p-4 mb-4" id="cardDocumentos" style="display:none;">
+            <h5 class="fw-bold mb-3">📎 Documentos Asociados</h5>
+
+            <!-- FORM UPLOAD -->
+            <form id="formUploadDoc" enctype="multipart/form-data" class="mb-3">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="file" id="docArchivo" name="archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.docx">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="docTitulo" name="titulo" class="form-control" placeholder="Título del documento">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="docTipo" class="form-select">
+                            <option value="FOTO">Fotografía</option>
+                            <option value="INFORME">Informe</option>
+                            <option value="OTRO" selected>Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-success w-100" id="btnSubirDoc" type="submit">↑</button>
+                    </div>
+                </div>
+                <div id="docMsg" class="mt-2"></div>
+            </form>
+
+            <!-- LISTA DOCUMENTOS -->
+            <ul id="listaDocumentos" class="list-group"></ul>
+        </div>
+
+        <!-- PANEL CAMBIO ESTADO -->
         <div class="card shadow-sm p-4 mb-4" id="panelCambioEstado" style="display:none;">
             <h5 class="fw-bold mb-3">⚙️ Cambiar Estado de OT</h5>
 
@@ -120,14 +143,11 @@
                 </div>
             </div>
 
-            <button id="btnGuardarEstado" class="btn btn-success mt-3">
-                Guardar cambio
-            </button>
-
+            <button id="btnGuardarEstado" class="btn btn-success mt-3">Guardar cambio</button>
             <div id="estadoMsg" class="mt-3"></div>
         </div>
 
-        <!-- HISTORIAL / TIMELINE -->
+        <!-- TIMELINE -->
         <div class="card shadow-sm p-4 mb-4">
             <h5 class="fw-bold mb-3">📜 Historial de OTs</h5>
             <ul id="timeline" class="timeline"></ul>

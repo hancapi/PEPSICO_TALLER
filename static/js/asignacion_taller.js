@@ -1,17 +1,18 @@
+// static/js/asignacion_taller.js
 // ======================================================
-//  Asignación de Vehículos a Mecánico — Taller PepsiCo
+//  Asignación de Vehículos — Taller PepsiCo (Dinámico)
 // ======================================================
 
-// -------------------------------
-//  Obtener token CSRF (seguro)
-// -------------------------------
+
+// ======================================================
+//  CSRF token seguro
+// ======================================================
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
-        for (let c of cookies) {
+        for (let c of document.cookie.split(";")) {
             const cookie = c.trim();
-            if (cookie.substring(0, name.length + 1) === (name + "=")) {
+            if (cookie.startsWith(name + "=")) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
             }
@@ -24,12 +25,11 @@ const csrftoken = getCookie("csrftoken");
 
 
 // ======================================================
-//  Abrir y cerrar modal
+//  Abrir / cerrar modal
 // ======================================================
 function abrirAsignacion(ot_id, patente) {
     document.getElementById("asig_ot_id").value = ot_id;
     document.getElementById("asig_patente_txt").innerText = patente;
-
     document.getElementById("modalAsignacion").classList.remove("d-none");
 }
 
@@ -39,16 +39,57 @@ function cerrarModal() {
 
 
 // ======================================================
-//  Enviar asignación al backend
+//  Recargar tabla de asignaciones (AUTO-REFRESH)
+// ======================================================
+async function cargarPendientes() {
+
+    const cont = document.getElementById("tablaAsignacionTaller");
+    if (!cont) return;
+
+    try {
+        const resp = await fetch("/api/ordenestrabajo/supervisor/vehiculos/", {
+            credentials: "same-origin"
+        });
+
+        const data = await resp.json();
+
+        if (!data.success) {
+            cont.innerHTML = `<tr><td colspan="6" class="text-danger">${data.message}</td></tr>`;
+            return;
+        }
+
+        // La API ya devuelve HTML completo del tbody:
+        cont.innerHTML = data.html;
+
+        // VOLVER A ENLAZAR BOTONES
+        enlazarBotonesAsignar();
+
+    } catch (err) {
+        console.error(err);
+        cont.innerHTML = `<tr><td colspan="6" class="text-danger">Error al cargar datos.</td></tr>`;
+    }
+}
+
+
+// ======================================================
+//  Enlaza botones luego del refresh dinámico
+// ======================================================
+function enlazarBotonesAsignar() {
+    document.querySelectorAll(".btn-asignar").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            abrirAsignacion(btn.dataset.otId, btn.dataset.patente);
+        });
+    });
+}
+
+
+// ======================================================
+//  Enviar asignación (POST)
 // ======================================================
 document.addEventListener("DOMContentLoaded", () => {
 
     const form = document.getElementById("formAsignacion");
-
-    if (!form) {
-        console.error("❌ No existe <form id='formAsignacion'> en el DOM.");
-        return;
-    }
+    if (!form) return;
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -78,40 +119,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            if (!res.ok) {
-                console.error("❌ Error HTTP:", res.status);
-                alert("Error al asignar OT.");
-                return;
-            }
-
             const data = await res.json();
 
             if (!data.success) {
-                alert(data.message || "Error en la asignación.");
+                alert(data.message || "Error al asignar.");
                 return;
             }
 
             alert("Asignación realizada correctamente.");
             cerrarModal();
-            location.reload();
+
+            // Recargar tabla sin recargar pantalla
+            cargarPendientes();
 
         } catch (err) {
-            console.error("❌ Error en comunicación:", err);
+            console.error(err);
             alert("Error de comunicación con el servidor.");
         }
     });
 
+    // Inicial
+    enlazarBotonesAsignar();
 
-    // ======================================================
-    //  Enlazar botones con data-attributes
-    // ======================================================
-    document.querySelectorAll(".btn-asignar").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            abrirAsignacion(
-                btn.dataset.otId,
-                btn.dataset.patente
-            );
-        });
-    });
-
+    // Auto refresh cada 10s (ajustable)
+    setInterval(cargarPendientes, 10000);
 });
