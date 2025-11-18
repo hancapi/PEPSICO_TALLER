@@ -34,7 +34,7 @@ async function enviarCambioEstado(patente, estado, comentario = "") {
     try {
         // 🔁 Antes: POST a window.location.pathname (/registro-taller/)
         // Ahora: POST a la API de cambio de estado
-        const res = await fetch("/api/ordenestrabajo/cambiar-estado/", {
+        const res = await fetch("/registro-taller/", {
             method: "POST",
             body: fd,
             headers: {

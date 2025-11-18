@@ -191,7 +191,7 @@
         try {
             // 🔁 Antes: POST a /registro-taller/ (vista HTML)
             // Ahora: usamos la API oficial de cambio de estado
-            const res = await fetch("/api/ordenestrabajo/cambiar-estado/", {
+            const res = await fetch("/registro-taller/", {
                 method: "POST",
                 body: fd,
                 headers: {

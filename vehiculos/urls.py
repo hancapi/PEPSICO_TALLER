@@ -6,16 +6,16 @@ app_name = 'vehiculos'
 
 urlpatterns = [
 
-    # -------------------------
-    # PÁGINAS (HTML)
-    # -------------------------
+    # ======================================================
+    # HTML
+    # ======================================================
     path('ingreso/', views.ingreso_vehiculos, name='ingreso_vehiculos'),
     path('ficha/<str:patente>/', views.ficha_vehiculo, name='ficha_vehiculo'),
     path('ficha/', views.ficha_vehiculo, name='ficha_vehiculo_qs'),  # ?patente=ABC123
 
-    # -------------------------
+    # ======================================================
     # APIS JSON
-    # -------------------------
+    # ======================================================
     path('ingresar/', views.ingreso_api, name='ingreso_api'),
     path('existe/', views.existe_vehiculo, name='existe_vehiculo'),
 
