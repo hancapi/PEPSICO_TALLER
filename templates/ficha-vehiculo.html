@@ -68,10 +68,22 @@
 
         <!-- KPIS -->
         <div class="stats-section mb-4" id="kpiContainer">
-            <div class="stats-card"><div class="stat-number" id="k_ots"></div><div class="stat-label">OTs Totales</div></div>
-            <div class="stats-card"><div class="stat-number" id="k_inc"></div><div class="stat-label">Incidentes</div></div>
-            <div class="stats-card"><div class="stat-number" id="k_pres"></div><div class="stat-label">Préstamos</div></div>
-            <div class="stats-card"><div class="stat-number" id="k_llave"></div><div class="stat-label">Llave</div></div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_ots"></div>
+                <div class="stat-label">OTs Totales</div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_inc"></div>
+                <div class="stat-label">Incidentes</div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_pres"></div>
+                <div class="stat-label">Préstamos</div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_llave"></div>
+                <div class="stat-label">Llave</div>
+            </div>
         </div>
 
         <!-- OT ACTUAL -->
@@ -84,6 +96,35 @@
                 <div class="col-md-3 mb-2"><strong>Fecha:</strong> <span id="ot_fecha"></span></div>
                 <div class="col-md-3 mb-2"><strong>Taller:</strong> <span id="ot_taller"></span></div>
             </div>
+        </div>
+
+        <!-- ============================ -->
+        <!-- PANEL CAMBIO DE ESTADO OT -->
+        <!-- ============================ -->
+        <div class="card shadow-sm p-4 mb-4" id="panelCambioEstado" style="display:none;">
+            <h5 class="fw-bold mb-3">⚙️ Cambiar Estado de OT</h5>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <select id="estadoNuevo" class="form-select">
+                        <option value="">Seleccione estado…</option>
+                        <option value="En Proceso">En Proceso</option>
+                        <option value="Pausado">Pausado</option>
+                        <option value="Finalizado">Finalizado</option>
+                    </select>
+                </div>
+
+                <div class="col-md-8">
+                    <input id="comentarioEstado" type="text" class="form-control"
+                           placeholder="Comentario (obligatorio si Finalizado)">
+                </div>
+            </div>
+
+            <button id="btnGuardarEstado" class="btn btn-success mt-3">
+                Guardar cambio
+            </button>
+
+            <div id="estadoMsg" class="mt-3"></div>
         </div>
 
         <!-- HISTORIAL / TIMELINE -->

@@ -131,7 +131,6 @@ def ingreso_api(request):
     if Vehiculo.objects.filter(patente=patente).exists():
         return JsonResponse({"status": "error", "message": "La patente ya existe"}, status=400)
 
-    # Ubicación → charfield
     ubicacion = (data.get("ubicacion") or "").strip()
 
     vehiculo_data = {
@@ -165,6 +164,7 @@ def existe_vehiculo(request):
 
 # ==========================================================
 # API Ficha datos generales + OT actual
+# 🔧 SOLO AQUÍ SE MODIFICÓ — lo demás NO se tocó
 # ==========================================================
 
 @require_GET
@@ -187,9 +187,12 @@ def api_ficha(request):
 
     kpi_ots = OrdenTrabajo.objects.filter(patente_id=patente).count()
 
+    # 🔧 CORREGIDO: agregar todos los estados activos
+    estados_activos = ["Pendiente", "En Taller", "En Proceso", "Pausado"]
+
     ot_actual = (
         OrdenTrabajo.objects
-            .filter(patente_id=patente, estado__in=["Pendiente", "En Proceso"])
+            .filter(patente_id=patente, estado__in=estados_activos)
             .order_by('-fecha_ingreso', '-hora_ingreso')
             .first()
     )
@@ -260,7 +263,7 @@ def api_ficha_ots(request):
                                       .values_list('taller_id', flat=True))
             qs = qs.filter(taller_id__in=ids or [-1])
 
-    # Map de talleres
+    # Map talleres
     taller_ids = list(qs.values_list('taller_id', flat=True))
     taller_map = dict(Taller.objects.filter(taller_id__in=taller_ids)
                                     .values_list('taller_id', 'nombre'))
