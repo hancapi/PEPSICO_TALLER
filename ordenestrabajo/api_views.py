@@ -13,6 +13,7 @@ from talleres.models import Taller
 from vehiculos.models import Vehiculo
 from autenticacion.roles import supervisor_only
 from .models import OrdenTrabajo
+import re
 
 
 ACTIVE_STATES = ["Pendiente", "En Proceso", "En Taller"]
@@ -88,13 +89,19 @@ def api_crear_ingreso(request):
         return JsonResponse({"success": False, "message": "La patente es obligatoria."}, status=400)
     if not fecha_str or not hora_str or not taller_id:
         return JsonResponse({"success": False, "message": "Debe indicar fecha, hora y taller."}, status=400)
-
+    
     try:
         fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
         hora = datetime.strptime(hora_str, "%H:%M").time()
         taller_id_int = int(taller_id)
     except:
         return JsonResponse({"success": False, "message": "Datos inválidos."}, status=400)
+    
+    if not re.match(r"^[A-Z0-9]{4,8}$", patente):
+        return JsonResponse({
+            "success": False,
+            "message": "Formato de patente inválido."
+    }, status=400)
 
     vehiculo = Vehiculo.objects.filter(patente=patente).first()
     if not vehiculo:
@@ -103,6 +110,14 @@ def api_crear_ingreso(request):
     taller = Taller.objects.filter(taller_id=taller_id_int).first()
     if not taller:
         return JsonResponse({"success": False, "message": "Taller no encontrado."}, status=404)
+
+    # 🔥 VALIDAR QUE EL EMPLEADO PERTENEZCA AL MISMO TALLER
+    if empleado.taller_id != taller_id_int:
+        return JsonResponse({
+            "success": False,
+            "message": "No puedes registrar ingresos en un taller que no es el tuyo."
+        }, status=403)
+
 
     ot_activa = OrdenTrabajo.objects.filter(
         patente=vehiculo,
@@ -136,7 +151,7 @@ def api_crear_ingreso(request):
         rut_creador=empleado
     )
 
-    vehiculo.estado = "En Taller"
+    vehiculo.estado = "Disponible"  
     vehiculo.ubicacion = taller.nombre
     vehiculo.save()
 
