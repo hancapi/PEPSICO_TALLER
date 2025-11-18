@@ -2,20 +2,24 @@ from django.contrib import admin
 from django.urls import path, include
 
 # ==========================================================
-# ✔ IMPORTS OFICIALES
+# ✔ IMPORTS OFICIALES (CORRECTOS)
 # ==========================================================
 from autenticacion import views_pages                   # login, inicio, ingreso_vehiculos, asignación
 from talleres.views import registro_taller_page         # registro taller REAL
 from vehiculos.views import ficha_vehiculo              # ficha vehículo REAL
 from reportes.views import reportes_page                # reportes REAL
 
-# ❗ IMPORTS OBSOLETOS (QUEDAN COMENTADOS PARA ROLLBACK)
+from django.conf import settings
+from django.conf.urls.static import static
+
+
+# ==========================================================
+# ❌ IMPORTS OBSOLETOS (SE ELIMINAN DEFINITIVAMENTE)
+# ==========================================================
 # from autenticacion.views_pages import registro_taller_page   # ← YA NO SE USA
 # from autenticacion.views_pages import ficha_vehiculo_page    # ← YA NO SE USA
 # from autenticacion.views_pages import reportes_page          # ← YA NO SE USA
-
-from django.conf import settings
-from django.conf.urls.static import static
+# ✔ Eliminados porque ya NO deben existir duplicados de vistas HTML.
 
 
 urlpatterns = [
@@ -33,11 +37,11 @@ urlpatterns = [
     path('inicio/', views_pages.inicio_page, name='inicio'),
 
     # ==========================================================
-    # REGISTRO TALLER (OFICIAL – talleres/views.py)
+    # REGISTRO TALLER — (OFICIAL – talleres/views.py)
     # ==========================================================
     path('registro-taller/', registro_taller_page, name='registro-taller'),
 
-    # ❗ VERSIÓN ANTIGUA (NO USAR — SOLO REFERENCIA)
+    # ❌ VERSIÓN ANTIGUA — YA NO SE USA
     # path('registro-taller/', views_pages.registro_taller_page, name='registro-taller-old'),
 
     # ==========================================================
@@ -46,19 +50,19 @@ urlpatterns = [
     path('ingreso-vehiculos/', views_pages.ingreso_vehiculos_page, name='ingreso-vehiculos'),
 
     # ==========================================================
-    # FICHA VEHÍCULO (OFICIAL – vehiculos/views.py)
+    # FICHA VEHÍCULO — (OFICIAL – vehiculos/views.py)
     # ==========================================================
     path('ficha-vehiculo/', ficha_vehiculo, name='ficha-vehiculo'),
 
-    # ❗ VERSIÓN ANTIGUA (NO USAR)
+    # ❌ VERSIÓN ANTIGUA — YA NO SE USA
     # path('ficha-vehiculo/', views_pages.ficha_vehiculo_page, name='ficha-vehiculo-old'),
 
     # ==========================================================
-    # REPORTES (OFICIAL – reportes/views.py)
+    # REPORTES — (OFICIAL – reportes/views.py)
     # ==========================================================
     path('reportes-dashboard/', reportes_page, name='reportes-dashboard'),
 
-    # ❗ VERSIÓN ANTIGUA (NO USAR)
+    # ❌ VERSIÓN ANTIGUA — YA NO SE USA
     # path('reportes-dashboard/', views_pages.reportes_page, name='reportes-dashboard-old'),
 
     # ==========================================================
@@ -78,7 +82,7 @@ urlpatterns = [
     path('api/taller/', include('talleres.urls_api')),
 
     # ==========================================================
-    # ASIGNACIÓN TALLER (OFICIAL)
+    # ASIGNACIÓN TALLER — (OFICIAL)
     # ==========================================================
     path('asignacion-taller/', views_pages.asignacion_taller_page, name='asignacion-taller'),
 
@@ -88,6 +92,9 @@ urlpatterns = [
     path('autenticacion/', include('autenticacion.urls')),
 ]
 
-# MEDIA FILES
+
+# ==========================================================
+# SERVIR ARCHIVOS MEDIA EN DEBUG
+# ==========================================================
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
