@@ -1,0 +1,85 @@
+{% if ots %}
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        <h5 class="fw-bold mb-3">Vehículos Asignados</h5>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>OT</th>
+                        <th>Patente</th>
+                        <th>Marca / Modelo</th>
+                        <th>Fecha Ingreso</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for ot in ots %}
+                    <tr>
+                        <td class="fw-bold text-primary">#{{ ot.ot_id }}</td>
+
+                        <td>{{ ot.patente.patente }}</td>
+
+                        <td>{{ ot.patente.marca }} {{ ot.patente.modelo }}</td>
+
+                        <td>
+                            {{ ot.fecha_ingreso|date:"d M Y" }}
+                            {{ ot.hora_ingreso|time:"H:i" }}
+                        </td>
+
+                        <td>
+                            {% if ot.estado == "En Taller" %}
+                                <span class="badge bg-warning text-dark">En Taller</span>
+                            {% elif ot.estado == "En Proceso" %}
+                                <span class="badge bg-primary">En Proceso</span>
+                            {% elif ot.estado == "Pausado" %}
+                                <span class="badge bg-secondary">Pausado</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <!-- ▶ REANUDAR -->
+                            <button class="btn btn-sm btn-success btn-reanudar"
+                                    data-patente="{{ ot.patente.patente }}">
+                                ▶
+                            </button>
+
+                            <!-- ⏸ PAUSAR -->
+                            <button class="btn btn-sm btn-warning btn-pausar text-dark"
+                                    data-patente="{{ ot.patente.patente }}">
+                                ⏸
+                            </button>
+
+                            <!-- ✔ FINALIZAR -->
+                            <button class="btn btn-sm btn-danger btn-finalizar"
+                                    data-patente="{{ ot.patente.patente }}">
+                                ✔
+                            </button>
+                        </td>
+
+                        <td>
+                            <a href="/ficha-vehiculo/?patente={{ ot.patente.patente }}"
+                               class="btn btn-sm btn-outline-primary">
+                                Ver Ficha
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+</div>
+
+{% else %}
+<div class="alert alert-info">
+    No tienes vehículos asignados actualmente.
+</div>
+{% endif %}

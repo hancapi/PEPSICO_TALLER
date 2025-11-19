@@ -1,154 +1,136 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Ingreso de Vehículos - Taller PepsiCo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}"/>
-</head>
-<body>
-  {% include "partials/sidebar.html" with menu_active="ingreso" %}
+{% block title %}Ingreso de Vehículos | Taller PepsiCo Chile{% endblock %}
 
-  <div class="main-content p-3">
-    <div class="row mb-4">
-      <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-        <div class="small text-muted">
-          Crearás como: <strong id="whoamiRut">—</strong>
-          <span class="text-muted">(<span id="whoamiUser">—</span>)</span>
+{% block content %}
+<div class="page-container fade-in">
+
+    <div class="welcome-card mb-4">
+        <div class="welcome-content">
+            <div class="welcome-avatar">🚗</div>
+            <div class="welcome-text">
+                <h1>Ingreso de Vehículos</h1>
+                <p>Registra camiones y visualiza ingresos recientes</p>
+            </div>
         </div>
-        <a href="/inicio-sesion/" class="btn btn-outline-danger" id="logoutButton">🔒 Cerrar Sesión</a>
-      </div>
     </div>
 
-    <div class="page-header welcome-card mb-4">
-      <h1 class="mb-1">🚗 Ingreso de Vehículos</h1>
-      <p class="mb-0">Agenda anti-solapamientos (slots de 30 minutos). El responsable se infiere desde tu sesión.</p>
+    <div id="okIngreso" class="alert alert-success d-none"></div>
+    <div id="errIngreso" class="alert alert-danger d-none"></div>
+
+    {% if empleado %}
+    <div class="info-empleado-card mb-4">
+        <div class="d-flex justify-content-between">
+            <div>
+                <h5 class="fw-bold mb-1">{{ empleado.nombre }}</h5>
+                <p class="text-muted small mb-0">
+                    RUT: {{ empleado.rut }} · Cargo: {{ empleado.cargo }}
+                </p>
+            </div>
+            <div class="text-end small">
+                <div><strong>Región:</strong> {{ empleado.region }}</div>
+                <div><strong>Taller:</strong> {{ empleado.taller.nombre }}</div>
+            </div>
+        </div>
     </div>
 
-    <div class="row g-3">
-      <!-- Panel de Agenda -->
-      <div class="col-lg-7">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title mb-3">Agenda</h5>
+    {% if empleado.cargo == "CHOFER" or empleado.cargo == "SUPERVISOR" %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">📝 Registrar Ingreso</h5>
 
-            <div class="row g-2 align-items-end">
-              <div class="col-md-4">
-                <label class="form-label" for="fecha">Fecha</label>
-                <input type="date" id="fecha" class="form-control" />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label" for="tallerId">Taller</label>
-                <select id="tallerId" class="form-select">
-                  <option value="1">Taller 1</option>
-                </select>
-              </div>
-              <div class="col-md-4">
-                <button class="btn btn-outline-primary w-100" id="btnCargarAgenda">🔄 Cargar Agenda</button>
-              </div>
-            </div>
+            <form id="formIngreso">
+                {% csrf_token %}
 
-            <div class="calendar-container mt-3">
-              <div class="d-flex justify-content-between align-items-center">
-                <strong>Disponibilidad</strong>
-                <span class="small text-muted">Jornada: 08:00–18:00 / 30 min</span>
-              </div>
+                <div class="row g-3">
 
-              <div id="slotsGrid" class="time-slots mt-2"></div>
+                    <div class="col-md-3">
+                        <label class="form-label">Patente</label>
+                        <input id="patente" type="text" class="form-control text-uppercase" placeholder="ABCD12">
+                    </div>
 
-              <div class="schedule-summary alert alert-info py-2 px-3 mt-3 d-none" id="slotResumen" role="alert">
-                Seleccionado: <strong id="slotSel"></strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha</label>
+                        <input id="fecha" type="date" class="form-control">
+                    </div>
 
-      <!-- Formulario de Ingreso -->
-      <div class="col-lg-5">
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title mb-3">Crear Ingreso</h5>
+                    <div class="col-md-3">
+                        <label class="form-label">Taller</label>
+                        <select id="tallerId" class="form-select">
+                            <option value="">Seleccione...</option>
+                            {% for t in talleres %}
+                                <option value="{{ t.taller_id }}" {% if empleado.taller_id == t.taller_id %}selected{% endif %}>
+                                    {{ t.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-            <form id="formIngreso" autocomplete="off" novalidate>
-              <div class="mb-2">
-                <label class="form-label" for="patente">Patente</label>
-                <input
-                  type="text"
-                  id="patente"
-                  class="form-control"
-                  placeholder="ABCZ12"
-                  pattern="[A-Z0-9\-]{4,10}"
-                  title="Usa 4 a 10 caracteres en MAYÚSCULAS, números y guion (-)"
-                  maxlength="10"
-                  oninput="this.value=this.value.toUpperCase()"
-                  required
-                />
-                <div class="form-text">Usa letras y números (ej: ABCZ12). Se convertirá a mayúsculas automáticamente.</div>
-              </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Descripción</label>
+                        <input id="descripcion" type="text" class="form-control" placeholder="Motivo o detalle">
+                    </div>
 
-              <div class="mb-2">
-                <label class="form-label" for="descripcion">Descripción (opcional)</label>
-                <textarea id="descripcion" class="form-control" rows="3" placeholder="Motivo del ingreso..."></textarea>
-              </div>
+                </div>
 
-              <div class="d-grid">
-                <button type="submit" id="btnCrear" class="btn btn-primary" disabled>💾 Crear OT</button>
-              </div>
+                <div class="mt-4">
+                    <h6 class="fw-bold">Disponibilidad del Taller</h6>
+                    <div id="slotsGrid" class="mt-2"></div>
 
-              <!-- Alertas de resultado -->
-              <div id="okIngreso"  class="alert alert-success mt-3 d-none" role="alert">✅ OT creada correctamente</div>
-              <div id="errIngreso" class="alert alert-danger  mt-3 d-none" role="alert">❌ Error al crear OT</div>
+                    <div id="slotResumen" class="mt-3 d-none">
+                        <span class="badge bg-primary shadow-sm">Seleccionado: <span id="slotSel"></span></span>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button id="btnCrear" type="submit" class="btn btn-primary px-4" disabled>
+                        💾 Crear OT
+                    </button>
+                </div>
             </form>
-          </div>
+
         </div>
+    </div>
+    {% endif %}
 
-        <div class="card mt-3">
-          <div class="card-body">
-            <h6 class="card-title mb-2">Tips</h6>
-            <ul class="small text-muted mb-0">
-              <li>Un vehículo no puede tener dos ingresos en curso el mismo día.</li>
-              <li>No se puede crear ingreso si el slot ya está ocupado en el taller.</li>
-              <li>Estados que bloquean: <strong>Pendiente</strong> y <strong>En Proceso</strong>.</li>
-              <li>El campo <code>rut_creador</code> se guarda automáticamente desde tu sesión.</li>
-            </ul>
-          </div>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">📋 Últimos Vehículos Disponibles</h5>
+
+            <div class="text-muted small mb-3">
+                Vehículos cuya última OT finalizó y actualmente están <strong>Disponibles</strong>.
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>OT</th>
+                            <th>Patente</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tablaUltimosIngresos">
+                        {% include "partials/tabla_ultimos_ingresos.html" with ots=ultimas_ot %}
+                    </tbody>
+
+                </table>
+            </div>
+
         </div>
-      </div>
-    </div> <!-- row -->
-  </div> <!-- main-content -->
+    </div>
 
-  <script src="{% static 'js/auth.js' %}"></script>
+    {% else %}
+        <div class="alert alert-warning">No tienes permisos para esta sección.</div>
+    {% endif %}
 
-  <!-- whoami (silencioso si el endpoint no existe) -->
-  <script>
-    (async function fetchWhoAmI() {
-      try {
-        const res = await fetch('/api/ordenestrabajo/api/whoami/', { credentials: 'include' });
-        if (!res.ok) return;
-        const data = await res.json();
-        document.getElementById('whoamiRut').textContent  = data.rut || '—';
-        document.getElementById('whoamiUser').textContent = data.usuario || '—';
-      } catch(_) {}
-    })();
+</div>
 
-    // Fecha por defecto = hoy
-    (function setDefaultDate() {
-      const f = document.getElementById('fecha');
-      if (f && !f.value) {
-        const d = new Date();
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        f.value = `${yyyy}-${mm}-${dd}`;
-      }
-    })();
-  </script>
-
-  <script src="{% static 'js/ingreso_vehiculos.js' %}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<script src="{% static 'js/ingreso_vehiculos.js' %}"></script>
+{% endblock %}

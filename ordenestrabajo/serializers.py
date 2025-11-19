@@ -1,11 +1,13 @@
-#ordenestrabajo/serializers.py
+# ordenestrabajo/serializers.py
 from rest_framework import serializers
 from .models import OrdenTrabajo, Repuesto
+
 
 class RepuestoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Repuesto
         fields = ['repuesto_id', 'cantidad', 'nombre', 'descripcion']
+
 
 class OrdenTrabajoSerializer(serializers.ModelSerializer):
     repuestos = RepuestoSerializer(many=True, read_only=True, source='repuesto_set')
@@ -21,7 +23,7 @@ class OrdenTrabajoSerializer(serializers.ModelSerializer):
             'estado',
             'patente',
             'taller',
-            'rut',        # ✅ reemplaza "empleado" por "rut"
-            'repuestos'
+            'rut',
+            'rut_creador',
+            'repuestos',
         ]
-

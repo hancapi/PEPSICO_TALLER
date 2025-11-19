@@ -1,109 +1,139 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Inicio - Gestión de Vehículos PepsiCo Chile</title>
+{% load roles %}
 
-  <!-- Bootstrap + CSS central -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}"/>
-</head>
-<body>
-  {% include "partials/sidebar.html" with menu_active="inicio" %}
+{% block title %}Inicio | Taller PepsiCo Chile{% endblock %}
 
-  <div class="main-content p-3">
-    <!-- barra superior -->
-    <div class="row mb-4">
-      <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-        <button class="btn btn-outline-danger" id="logoutButton">🔒 Cerrar Sesión</button>
-        <span id="envIndicator"></span>
-      </div>
-    </div>
+{% block content %}
+<div class="page-container fade-in">
 
-    <!-- bienvenida -->
+    <!-- ======================================================
+         TARJETA DE BIENVENIDA
+    ====================================================== -->
     <div class="welcome-card mb-4">
-      <h1 id="welcomeTitle" class="mb-1">Bienvenido</h1>
-      <p class="mb-0">Sistema de Gestión de Vehículos - Taller PepsiCo Chile</p>
+        <div class="welcome-content">
+            <div class="welcome-avatar">{{ empleado.nombre|first|upper }}</div>
+
+            <div class="welcome-text">
+                <h1 class="mb-1">Bienvenido, {{ empleado.nombre }}</h1>
+                <p class="m-0">Sistema de Gestión de Vehículos — <strong>Taller PepsiCo Chile</strong></p>
+            </div>
+        </div>
     </div>
 
-    <!-- info empleado -->
-    <div class="card info-empleado-card feature-card mb-4">
-      <div class="card-body">
-        <h5 class="card-title">👤 Mi Información</h5>
-        <div class="row" id="empleadoInfo"></div>
-      </div>
+    <!-- ======================================================
+         INFORMACIÓN DEL EMPLEADO
+    ====================================================== -->
+    <div class="card info-empleado-card mb-4">
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                <h5 class="fw-bold mb-3">🧑‍💼 Mi Información</h5>
+
+                <p class="mb-1"><strong>RUT:</strong> {{ empleado.rut }}</p>
+                <p class="mb-1"><strong>Cargo:</strong> {{ empleado.cargo }}</p>
+            </div>
+
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Horario:</strong> {{ empleado.horario }}</p>
+                <p class="mb-1"><strong>Región:</strong> {{ empleado.region }}</p>
+                <p class="mb-1"><strong>Taller:</strong> {{ empleado.taller.nombre }}</p>
+            </div>
+
+        </div>
     </div>
 
-    <!-- KPIs -->
-    <div class="row mb-4">
-      <div class="col-md-3">
+    <!-- ======================================================
+         KPIS (solo supervisor)
+    ====================================================== -->
+    {% if empleado.cargo|upper == "SUPERVISOR" %}
+    <div class="stats-section mb-4">
+
         <div class="stats-card">
-          <div class="stat-number" id="statVehiculos">0</div>
-          <div class="stat-label">Vehículos Totales</div>
+            <div class="stat-number" id="statVehiculos">{{ kpis.total_vehiculos }}</div>
+            <div class="stat-label">Vehículos Totales</div>
         </div>
-      </div>
-      <div class="col-md-3">
+
         <div class="stats-card">
-          <div class="stat-number" id="statTaller">0</div>
-          <div class="stat-label">En Taller</div>
+            <div class="stat-number text-pastel-red" id="statTaller">{{ kpis.en_taller }}</div>
+            <div class="stat-label">En Taller</div>
         </div>
-      </div>
-      <div class="col-md-3">
+
         <div class="stats-card">
-          <div class="stat-number" id="statProceso">0</div>
-          <div class="stat-label">En Proceso</div>
+            <div class="stat-number" id="statProceso">{{ kpis.en_proceso }}</div>
+            <div class="stat-label">En Proceso</div>
         </div>
-      </div>
-      <div class="col-md-3">
+
         <div class="stats-card">
-          <div class="stat-number" id="statEmpleados">0</div>
-          <div class="stat-label">Empleados Activos</div>
+            <div class="stat-number" id="statEmpleados">{{ kpis.total_empleados }}</div>
+            <div class="stat-label">Empleados Activos</div>
         </div>
-      </div>
+
+    </div>
+    {% endif %}
+
+    <!-- ======================================================
+         TARJETAS DE ACCESO RÁPIDO
+    ====================================================== -->
+    <div class="features-section">
+
+        <!-- 🔵 Asignación Taller (solo supervisor) -->
+        {% if empleado.cargo|upper == "SUPERVISOR" %}
+        <div class="card feature-card">
+            <div class="card-body">
+                <h5 class="fw-bold">🧰 Asignación Taller</h5>
+                <p class="text-muted">Asignar mecánicos a vehículos con OT pendiente.</p>
+                <a href="{% url 'asignacion-taller' %}" class="btn btn-outline-primary w-100">
+                    Abrir Asignación
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 🛠 Registro Taller (supervisor/mecánico) -->
+        {% if empleado.cargo|upper == "SUPERVISOR" or empleado.cargo|upper == "MECANICO" %}
+        <div class="card feature-card">
+            <div class="card-body">
+                <h5 class="fw-bold">🛠️ Registro Taller</h5>
+                <p class="text-muted">Gestiona y visualiza todos los vehículos en el taller.</p>
+                <a href="{% url 'registro-taller' %}" class="btn btn-outline-primary w-100">
+                    Ingresar
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 🚗 Ingreso de vehículos -->
+        {% if empleado.cargo|upper == "CHOFER" or empleado.cargo|upper == "SUPERVISOR" %}
+        <div class="card feature-card">
+            <div class="card-body">
+                <h5 class="fw-bold">🚗 Ingreso Vehículos</h5>
+                <p class="text-muted">Registra ingresos y agenda revisiones.</p>
+                <a href="{% url 'ingreso-vehiculos' %}" class="btn btn-outline-primary w-100">
+                    Ingresar
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 📄 Ficha Vehículo -->
+        <div class="card feature-card">
+            <div class="card-body">
+                <h5 class="fw-bold">📄 Ficha Vehículo</h5>
+                <p class="text-muted">Consulta historial, OT y KPIs del vehículo.</p>
+                <a href="{% url 'ficha-vehiculo' %}" class="btn btn-outline-primary w-100">
+                    Abrir Ficha
+                </a>
+            </div>
+        </div>
+
+        <!-- ❌ Se eliminó el bloque de “📊 Reportes” duplicado -->
+        
     </div>
 
-    <!-- tarjetas de acceso rápido -->
-    <div class="row">
-      <div class="col-md-4 mb-4">
-        <div class="card feature-card h-100">
-          <div class="card-body text-center">
-            <h3 class="card-title">🛠️ Registro Taller</h3>
-            <p class="card-text">Gestiona y visualiza todos los vehículos en el taller</p>
-            <a href="{% url 'talleres:registro_taller' %}" class="btn btn-primary">🛠️ Ingresar</a>
-          </div>
-        </div>
-      </div>
+</div>
 
-      <div class="col-md-4 mb-4">
-        <div class="card feature-card h-100">
-          <div class="card-body text-center">
-            <h3 class="card-title">🚗 Ingreso Vehículos</h3>
-            <p class="card-text">Registra nuevos ingresos y agenda</p>
-            <a href="{% url 'vehiculos:ingreso_vehiculos' %}" class="btn btn-primary">🚗 Ingresar</a>
-          </div>
-        </div>
-      </div>
+<!-- Script de KPIs -->
+<script src="{% static 'js/dashboard.js' %}"></script>
 
-      <!-- NUEVA TARJETA: Ficha Vehículo -->
-      <div class="col-md-4 mb-4">
-        <div class="card feature-card h-100">
-          <div class="card-body text-center">
-            <h3 class="card-title">📄 Ficha Vehículo</h3>
-            <p class="card-text">Consulta historial, OT en curso y KPIs por patente</p>
-            <a href="{% url 'vehiculos:ficha_vehiculo_qs' %}" class="btn btn-primary">📄 Abrir Ficha</a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="debug"></div>
-  </div>
-
-  <!-- JS -->
-  <script src="{% static 'js/auth.js' %}"></script>
-  <script src="{% static 'js/dashboard.js' %}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

@@ -1,150 +1,171 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Ficha de Vehículo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}"/>
-</head>
-<body>
-  {% include "partials/sidebar.html" with menu_active="ingreso" %}
 
-  <div class="main-content p-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h1 class="mb-0">📄 Ficha de Vehículo</h1>
-      <form class="d-flex gap-2" id="formBuscar">
-        <input class="form-control" id="patenteInput" placeholder="Patente (p.e. ABCZ12)" value="{{ patente|default:'' }}">
-        <button class="btn btn-primary" type="submit">Buscar</button>
-      </form>
+{% block title %}Ficha Vehículo | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+    <!-- HEADER -->
+    <div class="welcome-card mb-4">
+        <div class="welcome-content">
+            <div class="welcome-avatar">🚗</div>
+            <div class="welcome-text">
+                <h1>Ficha del Vehículo</h1>
+                <p>Consulta historial, estados y órdenes de trabajo</p>
+            </div>
+        </div>
     </div>
 
-    <!-- Encabezado / info vehículo -->
-    <div class="card mb-3">
-      <div class="card-body">
-        <div id="vehiculoNoEncontrado" class="alert alert-warning d-none mb-3">No se encontró la patente indicada.</div>
-        <div class="row g-3" id="vehiculoInfo" style="display:none;">
-          <div class="col-md-3">
-            <div class="small text-muted">Patente</div>
-            <div class="fw-semibold" id="v_patente">—</div>
-          </div>
-          <div class="col-md-3">
-            <div class="small text-muted">Marca / Modelo</div>
-            <div class="fw-semibold" id="v_marca_modelo">—</div>
-          </div>
-          <div class="col-md-2">
-            <div class="small text-muted">Año</div>
-            <div class="fw-semibold" id="v_anio">—</div>
-          </div>
-          <div class="col-md-2">
-            <div class="small text-muted">Tipo</div>
-            <div class="fw-semibold" id="v_tipo">—</div>
-          </div>
-          <div class="col-md-2">
-            <div class="small text-muted">Ubicación</div>
-            <div class="fw-semibold" id="v_ubicacion">—</div>
-          </div>
-          <div class="col-md-2">
-            <div class="small text-muted">Estado</div>
-            <span class="badge bg-secondary" id="v_estado">—</span>
-          </div>
+    <!-- BUSCADOR -->
+    <div class="card shadow-sm mb-4 p-4">
+        <h5 class="fw-bold mb-3">🔍 Buscar Vehículo</h5>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input id="inputPatente" type="text"
+                       class="form-control"
+                       placeholder="Ej: ABC123"
+                       value="{{ patente|default:'' }}">
+            </div>
+
+            <div class="col-md-2">
+                <button id="btnBuscar" class="btn btn-primary w-100">Buscar</button>
+            </div>
         </div>
-      </div>
+
+        <div id="alertBox" class="mt-3"></div>
     </div>
 
-    <!-- KPIs + OT actual -->
-    <div class="row g-3 mb-3">
-      <div class="col-md-3">
-        <div class="stats-card">
-          <div class="stat-number" id="kpi_ots">0</div>
-          <div class="stat-label">OTs totales</div>
+    <!-- INFO VEHÍCULO -->
+    <div id="infoVehiculo" class="hidden">
+
+        <!-- CARD PRINCIPAL -->
+        <div class="card shadow-sm p-4 mb-4">
+            <h5 class="fw-bold mb-3">📘 Información del Vehículo</h5>
+
+            <div class="row">
+                <div class="col-md-3 mb-2"><strong>Patente:</strong> <span id="v_patente"></span></div>
+                <div class="col-md-3 mb-2"><strong>Marca:</strong> <span id="v_marca"></span></div>
+                <div class="col-md-3 mb-2"><strong>Modelo:</strong> <span id="v_modelo"></span></div>
+                <div class="col-md-3 mb-2"><strong>Año:</strong> <span id="v_anio"></span></div>
+
+                <div class="col-md-3 mb-2"><strong>Tipo:</strong> <span id="v_tipo"></span></div>
+                <div class="col-md-3 mb-2"><strong>Ubicación:</strong> <span id="v_ubicacion"></span></div>
+                <div class="col-md-3 mb-2">
+                    <strong>Estado Actual:</strong> 
+                    <span id="v_estado" class="badge bg-secondary"></span>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stats-card">
-          <div class="stat-number" id="kpi_incidentes">0</div>
-          <div class="stat-label">Incidentes</div>
+
+        <!-- KPIS -->
+        <div class="stats-section mb-4" id="kpiContainer">
+            <div class="stats-card">
+                <div class="stat-number" id="k_ots"></div>
+                <div class="stat-label">OTs Totales</div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_inc"></div>
+                <div class="stat-label">Incidentes</div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_pres"></div>
+                <div class="stat-label">Préstamos</div>
+            </div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_llave"></div>
+                <div class="stat-label">Llave</div>
+            </div>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stats-card">
-          <div class="stat-number" id="kpi_prestamos">0</div>
-          <div class="stat-label">Préstamos</div>
+
+        <!-- OT ACTUAL -->
+        <div class="card shadow-sm p-4 mb-4" id="otActualCard" style="display:none;">
+            <h5 class="fw-bold mb-3">🛠️ Orden de Trabajo en Curso</h5>
+
+            <div class="row">
+                <div class="col-md-3 mb-2"><strong>ID OT:</strong> <span id="ot_id"></span></div>
+                <div class="col-md-3 mb-2"><strong>Estado:</strong> <span id="ot_estado" class="badge bg-info"></span></div>
+                <div class="col-md-3 mb-2"><strong>Fecha:</strong> <span id="ot_fecha"></span></div>
+                <div class="col-md-3 mb-2"><strong>Taller:</strong> <span id="ot_taller"></span></div>
+            </div>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stats-card">
-          <div class="stat-number" id="kpi_llave">—</div>
-          <div class="stat-label">Llave</div>
+
+        <!-- ============================ -->
+        <!-- 📎 DOCUMENTOS ASOCIADOS -->
+        <!-- ============================ -->
+        <div class="card shadow-sm p-4 mb-4" id="cardDocumentos" style="display:none;">
+            <h5 class="fw-bold mb-3">📎 Documentos Asociados</h5>
+
+            <!-- FORM UPLOAD -->
+            <form id="formUploadDoc" enctype="multipart/form-data" class="mb-3">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <input type="file" id="docArchivo" name="archivo" class="form-control"
+                               accept=".pdf,.jpg,.jpeg,.png,.docx">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="docTitulo" name="titulo" class="form-control"
+                               placeholder="Título del documento">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="docTipo" class="form-select">
+                            <option value="FOTO">Fotografía</option>
+                            <option value="INFORME">Informe</option>
+                            <option value="OTRO" selected>Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-success w-100" id="btnSubirDoc" type="submit">↑</button>
+                    </div>
+                </div>
+                <div id="docMsg" class="mt-2"></div>
+            </form>
+
+            <!-- CONTENEDOR DOCUMENTOS (3 GRUPOS) -->
+            <!-- IMPORTANTE: ahora es un <div>, no <ul> -->
+            <div id="listaDocumentos" class="list-group"></div>
+
+            <!-- Aquí el JS insertará dinámicamente:
+                 - Sección OT actual (li dentro del div)
+                 - Bloques de OTs finalizadas (div)
+                 - Bloques de documentos de vehículo (div)
+            -->
         </div>
-      </div>
+
+        <!-- PANEL CAMBIO ESTADO -->
+        <div class="card shadow-sm p-4 mb-4" id="panelCambioEstado" style="display:none;">
+            <h5 class="fw-bold mb-3">⚙️ Cambiar Estado de OT</h5>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <select id="estadoNuevo" class="form-select">
+                        <option value="">Seleccione estado…</option>
+                        <option value="En Proceso">En Proceso</option>
+                        <option value="Pausado">Pausado</option>
+                        <option value="Finalizado">Finalizado</option>
+                    </select>
+                </div>
+
+                <div class="col-md-8">
+                    <input id="comentarioEstado" type="text" class="form-control"
+                           placeholder="Comentario (obligatorio si Finalizado)">
+                </div>
+            </div>
+
+            <button id="btnGuardarEstado" class="btn btn-success mt-3">Guardar cambio</button>
+            <div id="estadoMsg" class="mt-3"></div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="card shadow-sm p-4 mb-4">
+            <h5 class="fw-bold mb-3">📜 Historial de OTs</h5>
+            <ul id="timeline" class="timeline"></ul>
+        </div>
+
     </div>
 
-    <div class="card mb-4" id="otActualCard" style="display:none;">
-      <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-          <h5 class="mb-1">🟢 OT en curso</h5>
-          <div class="small text-muted" id="otActualMeta">—</div>
-        </div>
-        <span class="badge bg-info" id="otActualEstado">—</span>
-      </div>
-    </div>
+</div>
 
-    <!-- Historial OTs -->
-    <div class="card">
-      <div class="card-body">
-        <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
-          <div>
-            <label class="form-label">Desde</label>
-            <input type="date" class="form-control" id="fromDate">
-          </div>
-          <div>
-            <label class="form-label">Hasta</label>
-            <input type="date" class="form-control" id="toDate">
-          </div>
-          <div>
-            <label class="form-label">Estado</label>
-            <select class="form-select" id="fltEstado">
-              <option value="">(Todos)</option>
-              <option>Pendiente</option>
-              <option>En Proceso</option>
-              <option>Finalizado</option>
-              <option>Cancelado</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Taller (ID o nombre)</label>
-            <input class="form-control" id="fltTaller" placeholder="1 / Maipú">
-          </div>
-          <button class="btn btn-outline-primary" id="btnFiltrar">Aplicar</button>
-          <button class="btn btn-outline-secondary" id="btnLimpiar">Limpiar</button>
-          <div class="ms-auto small text-muted" id="tablaCount"></div>
-        </div>
-
-        <div class="table-responsive">
-          <table class="table table-sm table-striped align-middle">
-            <thead>
-              <tr>
-                <th>#OT</th>
-                <th>Fecha/Hora</th>
-                <th>Taller</th>
-                <th>Estado</th>
-                <th>Responsable</th>
-                <th>Creador</th>
-              </tr>
-            </thead>
-            <tbody id="tablaOtsBody">
-              <tr><td colspan="6" class="text-muted">Cargando…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="{% static 'js/ficha_vehiculo.js' %}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-
+<script src="{% static 'js/ficha_vehiculo.js' %}"></script>
+{% endblock %}

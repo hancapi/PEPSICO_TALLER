@@ -1,0 +1,23 @@
+{# templates/partials/tabla_asignacion_pendientes.html #}
+{% for ot in ots %}
+<tr>
+    <td>#{{ ot.ot_id }}</td>
+    <td>{{ ot.patente.patente }}</td>
+    <td>{{ ot.patente.marca }}</td>
+    <td>{{ ot.patente.modelo }}</td>
+    <td>{{ ot.fecha_ingreso }} {{ ot.hora_ingreso }}</td>
+    <td>
+        <button class="btn btn-primary btn-sm btn-asignar"
+                data-ot-id="{{ ot.ot_id }}"
+                data-patente="{{ ot.patente.patente }}">
+            Asignar
+        </button>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="6" class="text-center text-muted py-3">
+        No hay vehículos pendientes de asignación.
+    </td>
+</tr>
+{% endfor %}
