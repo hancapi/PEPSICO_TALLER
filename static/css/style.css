@@ -55,6 +55,7 @@ body {
     border-radius: 0 20px 20px 0;
     box-shadow: var(--shadow-lg);
     transition: transform .3s ease;
+    z-index: 1000; /* <== añadido para que quede bajo el modal */
 }
 
 .sidebar h4 {
@@ -316,3 +317,29 @@ table {
    UTILIDADES
    ========================================================================== */
 .hidden { display: none; }
+
+/* ==========================================================================
+   MODAL ASIGNACIÓN TALLER
+   ========================================================================== */
+.custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1200; /* por encima de sidebar (1000) y mobile-header (1100) */
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-modal.d-none {
+    display: none !important;
+}
+
+.custom-modal .modal-content {
+    max-width: 600px;
+    width: 95%;
+    margin: 0 1rem;
+}

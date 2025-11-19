@@ -18,4 +18,4 @@ supervisor_only = user_passes_test(lambda u: has_role(u, ['SUPERVISOR']))
 chofer_or_supervisor = user_passes_test(lambda u: has_role(u, ['CHOFER', 'SUPERVISOR']))
 mecanico_or_supervisor = user_passes_test(lambda u: has_role(u, ['MECANICO', 'SUPERVISOR']))
 
-todos_roles = user_passes_test(lambda u: has_role(u, ['CHOFER', 'MECANICO', 'SUPERVISOR']))
+todos_roles = user_passes_test(lambda u: has_role(u, ['CHOFER', 'MECANICO', 'SUPERVISOR', 'ADMINISTRATIVO']))
