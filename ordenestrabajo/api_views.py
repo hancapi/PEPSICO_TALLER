@@ -224,7 +224,8 @@ def api_asignar_ot(request):
         .filter(
             ot_id=ot_id,
             estado="Pendiente",
-            taller_id=supervisor.taller.taller_id
+            taller_id=supervisor.taller.taller_id,
+            is_active=True,  # 👈 solo mecánicos activos
         )
         .select_related("patente")
         .first()
@@ -289,7 +290,7 @@ def api_mecanico_vehiculos(request):
     return JsonResponse({"success": True, "html": html})
 
 # ==========================================================
-# 🧰 API — SUPERVISOR: vehículos de su taller
+# 🧰 API — SUPERVISOR: vehículos PENDIENTES de su taller
 # GET /api/ordenestrabajo/supervisor/vehiculos/
 # ==========================================================
 @login_required
@@ -305,18 +306,26 @@ def api_supervisor_vehiculos(request):
     )
 
     if not supervisor or not supervisor.taller_id:
-        html = "<tr><td colspan='7'>No se pudo determinar tu taller.</td></tr>"
-        return JsonResponse({"success": False, "html": html})
+        return JsonResponse({
+            "success": False,
+            "message": "No se pudo determinar tu taller.",
+            "html": "<tr><td colspan='6' class='text-center text-danger'>No se pudo determinar tu taller.</td></tr>",
+        })
 
+    # Solo OTs PENDIENTES de este taller (las que se muestran en Asignación)
     ots = (
         OrdenTrabajo.objects
         .select_related("patente", "taller", "rut")
         .filter(
             taller_id=supervisor.taller_id,
-            estado__in=["Pendiente", "En Taller", "En Proceso", "Pausado"]
+            estado="Pendiente",
         )
-        .order_by("-fecha_ingreso", "-hora_ingreso")
+        .order_by("fecha_ingreso", "hora_ingreso")
     )
 
-    html = render_to_string("partials/tabla_vehiculos_taller.html", {"ots": ots})
+    html = render_to_string(
+        "partials/tabla_asignacion_pendientes.html",
+        {"ots": ots},
+    )
+
     return JsonResponse({"success": True, "html": html})

@@ -93,9 +93,11 @@
                     <label class="form-label">Mecánico</label>
                     <select id="asig_mecanico" class="form-select">
                         {% for m in mecanicos %}
-                        <option value="{{ m.rut }}">
-                            {{ m.nombre }} ({{ m.rut }})
-                        </option>
+                            {% if m.is_active %}
+                                <option value="{{ m.rut }}">
+                                    {{ m.nombre }} ({{ m.rut }})
+                                </option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
