@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load roles %}
 
 {% block title %}Registro Taller{% endblock %}
 
@@ -10,18 +11,28 @@
 
 <div class="page-container fade-in">
 
-    <h2 class="fw-bold mb-2">🛠️ Registro Taller</h2>
-    <p>Gestiona vehículos actualmente en el taller.</p>
+    <!-- ===========================================
+            ENCABEZADO
+    ============================================ -->
+    <div class="section-header mb-4">
+        <h2 class="fw-bold">🛠 Registro Taller</h2>
+        <p class="text-muted">Gestiona vehículos actualmente en el taller.</p>
+    </div>
 
-    <!-- Contenedor donde el JS insertará la tabla -->
-    <div id="tablaVehiculosTaller" class="mt-4">
-        <p>Cargando vehículos asignados...</p>
+    <!-- ===========================================
+            LISTA DE VEHÍCULOS EN TALLER
+            (fallback inicial + refresco por JS)
+    ============================================ -->
+    <div id="tablaVehiculosTaller" class="mt-3">
+        {# Fallback inicial por si aún no corre el JS #}
+        {% include "partials/tabla_vehiculos_taller.html" with ots=ots %}
     </div>
 
 </div>
 
 <!-- Siempre usar un único JS para ambos roles -->
- <script src="{% static 'js/registro_taller_estado.js' %}"></script>
+<script src="{% static 'js/registro_taller_estado.js' %}"></script>
 <script src="{% static 'js/registro_taller.js' %}"></script>
 
 {% endblock %}
+

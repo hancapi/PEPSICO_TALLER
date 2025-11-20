@@ -1,6 +1,6 @@
 // static/js/registro_taller.js
 // ======================================================
-//  REGISTRO TALLER — Auto refresh + cambios de estado
+//  REGISTRO TALLER — Auto refresh 
 // ======================================================
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -224,8 +224,7 @@ def api_asignar_ot(request):
         .filter(
             ot_id=ot_id,
             estado="Pendiente",
-            taller_id=supervisor.taller.taller_id,
-            is_active=True,  # 👈 solo mecánicos activos
+            taller_id=supervisor.taller.taller_id
         )
         .select_related("patente")
         .first()
@@ -239,7 +238,8 @@ def api_asignar_ot(request):
         .filter(
             rut=mecanico_rut,
             cargo="MECANICO",
-            taller_id=supervisor.taller.taller_id
+            taller_id=supervisor.taller.taller_id,
+            is_active=True,  # 👈 solo mecánicos activos
         )
         .first()
     )
@@ -290,7 +290,8 @@ def api_mecanico_vehiculos(request):
     return JsonResponse({"success": True, "html": html})
 
 # ==========================================================
-# 🧰 API — SUPERVISOR: vehículos PENDIENTES de su taller
+# 🧰 API — SUPERVISOR: vehículos EN TALLER de su taller
+# Usado por: Registro Taller (modo=supervisor)
 # GET /api/ordenestrabajo/supervisor/vehiculos/
 # ==========================================================
 @login_required
@@ -309,10 +310,51 @@ def api_supervisor_vehiculos(request):
         return JsonResponse({
             "success": False,
             "message": "No se pudo determinar tu taller.",
+            "html": "<div class='alert alert-danger'>No se pudo determinar tu taller.</div>",
+        })
+
+    ots = (
+        OrdenTrabajo.objects
+        .select_related("patente", "taller", "rut")
+        .filter(
+            taller_id=supervisor.taller_id,
+            estado__in=["En Taller", "En Proceso", "Pausado"],
+        )
+        .order_by("-fecha_ingreso", "-hora_ingreso")
+    )
+
+    html = render_to_string(
+        "partials/tabla_vehiculos_taller.html",
+        {"ots": ots},
+    )
+
+    return JsonResponse({"success": True, "html": html})
+
+
+# ==========================================================
+# 🧰 API — SUPERVISOR: OTs PENDIENTES de su taller
+# Usado por: pantalla 🧰 Asignación de Vehículos
+# GET /api/ordenestrabajo/supervisor/pendientes/
+# ==========================================================
+@login_required
+@supervisor_only
+@require_GET
+def api_supervisor_pendientes(request):
+
+    supervisor = (
+        Empleado.objects
+        .select_related("taller")
+        .filter(usuario=request.user.username)
+        .first()
+    )
+
+    if not supervisor or not supervisor.taller_id:
+        return JsonResponse({
+            "success": False,
+            "message": "No se pudo determinar tu taller.",
             "html": "<tr><td colspan='6' class='text-center text-danger'>No se pudo determinar tu taller.</td></tr>",
         })
 
-    # Solo OTs PENDIENTES de este taller (las que se muestran en Asignación)
     ots = (
         OrdenTrabajo.objects
         .select_related("patente", "taller", "rut")

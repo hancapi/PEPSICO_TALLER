@@ -47,7 +47,7 @@ async function cargarPendientes() {
     if (!cont) return;
 
     try {
-        const resp = await fetch("/api/ordenestrabajo/supervisor/vehiculos/", {
+        const resp = await fetch("/api/ordenestrabajo/supervisor/pendientes/", {
             credentials: "same-origin"
         });
 
