@@ -323,23 +323,26 @@ table {
    ========================================================================== */
 .custom-modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0; /* equivale a top/left/right/bottom: 0 */
     z-index: 1200; /* por encima de sidebar (1000) y mobile-header (1100) */
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.45); /* un poco más oscuro */
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
+/* Ocultar completamente cuando se usa d-none desde JS */
 .custom-modal.d-none {
     display: none !important;
 }
 
+/* Caja interna del modal */
 .custom-modal .modal-content {
+    position: relative;       /* asegura stack propio encima del overlay */
+    z-index: 1;
     max-width: 600px;
     width: 95%;
     margin: 0 1rem;
+    border-radius: 12px;
 }
+
