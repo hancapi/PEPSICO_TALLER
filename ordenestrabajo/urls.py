@@ -13,6 +13,8 @@ urlpatterns = [
     # ======================================================
     path("mecanico/vehiculos/", api_views.api_mecanico_vehiculos, name="api_mecanico_vehiculos"),
     path("supervisor/vehiculos/", api_views.api_supervisor_vehiculos, name="api_supervisor_vehiculos"),
+    path("supervisor/pendientes/", api_views.api_supervisor_pendientes, name="api_supervisor_pendientes"),
+
 
     # Agenda / creación OT / últimas / asignación
     path("agenda/slots/", api_views.api_agenda_slots, name="api_agenda_slots"),
