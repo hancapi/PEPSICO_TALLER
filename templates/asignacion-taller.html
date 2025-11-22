@@ -12,54 +12,58 @@
             ENCABEZADO
     ============================================ -->
     <div class="section-header mb-4">
-        <h2 class="fw-bold">🧰 Asignación de Vehículos</h2>
-        <p class="text-muted">Asignar mecánico y recibir vehículo en el taller.</p>
+        <h2 class="fw-bold">🧰 Solicitudes de Vehículos</h2>
+        <p class="text-muted">
+            Revisar solicitudes de ingreso, aprobar y programar fecha/hora de ingreso al taller.
+        </p>
     </div>
 
 
     <!-- ===========================================
-            TABLA OTs PENDIENTES
+            TABLA SOLICITUDES PENDIENTES
     ============================================ -->
     <div class="card mb-4">
         <div class="card-body">
 
-            <h5 class="fw-bold mb-3">🔄 Vehículos Pendientes de Asignación</h5>
+            <h5 class="fw-bold mb-3">🔄 Solicitudes de Ingreso Pendientes</h5>
 
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th>OT</th>
+                            <th>ID Solicitud</th>
                             <th>Patente</th>
                             <th>Marca</th>
                             <th>Modelo</th>
-                            <th>Fecha Ingreso</th>
+                            <th>Chofer</th>
+                            <th>Fecha Solicitada</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
 
                     <tbody id="tablaAsignacionTaller">
-                        {% for ot in ots %}
+                        {% for s in solicitudes %}
                         <tr>
-                            <td>#{{ ot.ot_id }}</td>
-                            <td>{{ ot.patente.patente }}</td>
-                            <td>{{ ot.patente.marca }}</td>
-                            <td>{{ ot.patente.modelo }}</td>
-                            <td>{{ ot.fecha_ingreso }} {{ ot.hora_ingreso }}</td>
+                            <td>#{{ s.id }}</td>
+                            <td>{{ s.vehiculo.patente }}</td>
+                            <td>{{ s.vehiculo.marca }}</td>
+                            <td>{{ s.vehiculo.modelo }}</td>
+                            <td>{{ s.chofer.nombre }}</td>
+                            <td>{{ s.fecha_solicitada }}</td>
 
                             <td>
                                 <button class="btn btn-primary btn-sm btn-asignar"
-                                        data-ot-id="{{ ot.ot_id }}"
-                                        data-patente="{{ ot.patente.patente }}">
-                                    Asignar
+                                        data-solicitud-id="{{ s.id }}"
+                                        data-patente="{{ s.vehiculo.patente }}"
+                                        data-fecha-solicitada="{{ s.fecha_solicitada|date:'Y-m-d' }}">
+                                    Programar ingreso
                                 </button>
                             </td>
                         </tr>
-
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-3">
-                                No hay vehículos pendientes de asignación.
+                            <td colspan="7" class="text-center text-muted py-3">
+                                No hay solicitudes de ingreso pendientes.
                             </td>
                         </tr>
                         {% endfor %}
@@ -72,25 +76,40 @@
 
 
     <!-- ===========================================
-            MODAL ASIGNACIÓN
+            MODAL ASIGNACIÓN / APROBACIÓN
     ============================================ -->
     <div id="modalAsignacion" class="custom-modal d-none">
         <div class="card modal-card p-4 shadow-lg">
 
-            <h5 class="fw-bold mb-3">Asignar Mecánico</h5>
+            <h5 class="fw-bold mb-3">Aprobar Solicitud de Ingreso</h5>
 
-            <p class="text-muted">
+            <p class="text-muted mb-1">
                 Patente: <strong><span id="asig_patente_txt"></span></strong>
+            </p>
+            <p class="text-muted">
+                Fecha solicitada: <strong><span id="asig_fecha_solicitada_txt"></span></strong>
             </p>
 
             <form id="formAsignacion">
 
-                <!-- ID Oculto -->
-                <input type="hidden" id="asig_ot_id">
+                <!-- ID de la solicitud (oculto) -->
+                <input type="hidden" id="asig_solicitud_id">
+
+                <!-- Fecha REAL de ingreso -->
+                <div class="mt-3">
+                    <label class="form-label">Fecha de ingreso al taller</label>
+                    <input id="asig_fecha_ingreso" type="date" class="form-control">
+                </div>
+
+                <!-- Hora REAL de ingreso -->
+                <div class="mt-3">
+                    <label class="form-label">Hora de ingreso al taller</label>
+                    <input id="asig_hora_ingreso" type="time" class="form-control">
+                </div>
 
                 <!-- Mecánico -->
                 <div class="mt-3">
-                    <label class="form-label">Mecánico</label>
+                    <label class="form-label">Mecánico asignado</label>
                     <select id="asig_mecanico" class="form-select">
                         {% for m in mecanicos %}
                             {% if m.is_active %}
@@ -107,7 +126,7 @@
                     <label class="form-label">Comentario</label>
                     <textarea id="asig_comentario"
                               class="form-control"
-                              placeholder="Ej: Recibido en taller y asignado a mecánico."
+                              placeholder="Ej: Aprobada, programado ingreso en este horario."
                     ></textarea>
                 </div>
 
@@ -117,7 +136,7 @@
                         Cancelar
                     </button>
                     <button type="submit" class="btn btn-primary">
-                        Confirmar Asignación
+                        Aprobar y crear OT
                     </button>
                 </div>
 
@@ -125,7 +144,6 @@
 
         </div>
     </div>
-
 
 </div>
 

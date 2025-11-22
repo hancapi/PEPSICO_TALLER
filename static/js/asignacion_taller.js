@@ -1,11 +1,11 @@
 // static/js/asignacion_taller.js
 // ======================================================
-//  Asignación de Vehículos — Taller PepsiCo (Dinámico)
+//  Asignación de Vehículos — Programación de ingreso
+//  Supervisor aprueba SolicitudesIngresoVehiculo
 // ======================================================
 
-
 // ======================================================
-//  CSRF token seguro
+//  CSRF token
 // ======================================================
 function getCookie(name) {
     let cookieValue = null;
@@ -23,13 +23,27 @@ function getCookie(name) {
 
 const csrftoken = getCookie("csrftoken");
 
-
 // ======================================================
 //  Abrir / cerrar modal
 // ======================================================
-function abrirAsignacion(ot_id, patente) {
-    document.getElementById("asig_ot_id").value = ot_id;
+function abrirAsignacion(solicitudId, patente, fechaSolicitada) {
+    document.getElementById("asig_solicitud_id").value = solicitudId;
     document.getElementById("asig_patente_txt").innerText = patente;
+    document.getElementById("asig_fecha_solicitada_txt").innerText = fechaSolicitada;
+
+    const inputFechaIng = document.getElementById("asig_fecha_ingreso");
+    const inputHoraIng  = document.getElementById("asig_hora_ingreso");
+
+    // Por defecto usamos la misma fecha solicitada
+    if (inputFechaIng && !inputFechaIng.value) {
+        inputFechaIng.value = fechaSolicitada;
+    }
+
+    // Hora por defecto (ajusta si quieres otro horario base)
+    if (inputHoraIng && !inputHoraIng.value) {
+        inputHoraIng.value = "09:00";
+    }
+
     document.getElementById("modalAsignacion").classList.remove("d-none");
 }
 
@@ -37,17 +51,15 @@ function cerrarModal() {
     document.getElementById("modalAsignacion").classList.add("d-none");
 }
 
-
 // ======================================================
-//  Recargar tabla de asignaciones (AUTO-REFRESH)
+//  Recargar tabla de SOLICITUDES pendientes
 // ======================================================
 async function cargarPendientes() {
-
     const cont = document.getElementById("tablaAsignacionTaller");
     if (!cont) return;
 
     try {
-        const resp = await fetch("/api/ordenestrabajo/supervisor/vehiculos/", {
+        const resp = await fetch("/api/ordenestrabajo/supervisor/solicitudes/", {
             credentials: "same-origin"
         });
 
@@ -58,10 +70,10 @@ async function cargarPendientes() {
             return;
         }
 
-        // La API ya devuelve HTML completo del tbody:
+        // La API devuelve HTML completo del tbody
         cont.innerHTML = data.html;
 
-        // VOLVER A ENLAZAR BOTONES
+        // Volver a enlazar botones
         enlazarBotonesAsignar();
 
     } catch (err) {
@@ -70,21 +82,23 @@ async function cargarPendientes() {
     }
 }
 
-
 // ======================================================
 //  Enlaza botones luego del refresh dinámico
 // ======================================================
 function enlazarBotonesAsignar() {
     document.querySelectorAll(".btn-asignar").forEach((btn) => {
         btn.addEventListener("click", () => {
-            abrirAsignacion(btn.dataset.otId, btn.dataset.patente);
+            abrirAsignacion(
+                btn.dataset.solicitudId,
+                btn.dataset.patente,
+                btn.dataset.fechaSolicitada
+            );
         });
     });
 }
 
-
 // ======================================================
-//  Enviar asignación (POST)
+//  Enviar aprobación de solicitud (crea OT)
 // ======================================================
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -94,22 +108,34 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const ot_id = document.getElementById("asig_ot_id").value;
-        const mecanico_rut = document.getElementById("asig_mecanico").value;
-        const comentario = document.getElementById("asig_comentario").value.trim();
+        const solicitud_id   = document.getElementById("asig_solicitud_id").value;
+        const mecanico_rut   = document.getElementById("asig_mecanico").value;
+        const comentario     = document.getElementById("asig_comentario").value.trim();
+        const fecha_ingreso  = document.getElementById("asig_fecha_ingreso").value;
+        const hora_ingreso   = document.getElementById("asig_hora_ingreso").value;
 
+        if (!fecha_ingreso) {
+            alert("Debe indicar la fecha de ingreso al taller.");
+            return;
+        }
+        if (!hora_ingreso) {
+            alert("Debe indicar la hora de ingreso al taller.");
+            return;
+        }
         if (!comentario) {
             alert("Debe ingresar un comentario.");
             return;
         }
 
         const fd = new FormData();
-        fd.append("ot_id", ot_id);
+        fd.append("solicitud_id", solicitud_id);
         fd.append("mecanico_rut", mecanico_rut);
         fd.append("comentario", comentario);
+        fd.append("fecha", fecha_ingreso);
+        fd.append("hora", hora_ingreso);
 
         try {
-            const res = await fetch("/api/ordenestrabajo/asignar/", {
+            const res = await fetch("/api/ordenestrabajo/supervisor/solicitud/aprobar/", {
                 method: "POST",
                 body: fd,
                 credentials: "same-origin",
@@ -122,14 +148,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
 
             if (!data.success) {
-                alert(data.message || "Error al asignar.");
+                alert(data.message || "Error al aprobar la solicitud.");
                 return;
             }
 
-            alert("Asignación realizada correctamente.");
+            alert("Solicitud aprobada y OT creada correctamente.");
             cerrarModal();
 
-            // Recargar tabla sin recargar pantalla
+            // Recargar tabla sin refrescar pantalla
             cargarPendientes();
 
         } catch (err) {
@@ -140,7 +166,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Inicial
     enlazarBotonesAsignar();
+    // Cargar solicitudes iniciales desde API (opcional, el HTML ya viene precargado)
+    cargarPendientes();
 
-    // Auto refresh cada 10s (ajustable)
+    // Auto refresh cada 10s
     setInterval(cargarPendientes, 10000);
 });
