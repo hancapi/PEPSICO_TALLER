@@ -14,7 +14,7 @@ class OrdenTrabajo(models.Model):
         ("Pendiente", "Pendiente"),
         ("En Taller", "En Taller"),
         ("En Proceso", "En Proceso"),
-        ("Pausado", "Pausado"),          # ← 🔥 agregado (faltaba)
+        ("Pausado", "Pausado"),          
         ("Finalizado", "Finalizado"),
         ("Cancelado", "Cancelado"),
     ]

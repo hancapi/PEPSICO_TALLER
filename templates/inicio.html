@@ -81,7 +81,7 @@
         {% if empleado.cargo|upper == "CHOFER" or empleado.cargo|upper == "SUPERVISOR" %}
         <div class="card feature-card">
             <div class="card-body">
-                <h5 class="fw-bold">🚗 Ingreso Vehículos</h5>
+                <h5 class="fw-bold">🚗 Solicitar Ingreso Vehículo</h5>
                 <p class="text-muted">Registra ingresos y agenda revisiones.</p>
                 <a href="{% url 'ingreso-vehiculos' %}" class="btn btn-outline-primary w-100">
                     Ingresar
@@ -94,7 +94,7 @@
         {% if empleado.cargo|upper == "SUPERVISOR" %}
         <div class="card feature-card">
             <div class="card-body">
-                <h5 class="fw-bold">🧰 Asignación Taller</h5>
+                <h5 class="fw-bold">🧰 Solicitud Agenda de Taller</h5>
                 <p class="text-muted">Asignar mecánicos a vehículos con OT pendiente.</p>
                 <a href="{% url 'asignacion-taller' %}" class="btn btn-outline-primary w-100">
                     Abrir Asignación
@@ -103,11 +103,11 @@
         </div>
         {% endif %}
 
-        <!-- 3️⃣ 🛠 Registro Taller (supervisor/mecánico) -->
+        <!-- 3️⃣ 🛠 Registro de Vehiculos en el Taller (supervisor/mecánico) -->
         {% if empleado.cargo|upper == "SUPERVISOR" or empleado.cargo|upper == "MECANICO" %}
         <div class="card feature-card">
             <div class="card-body">
-                <h5 class="fw-bold">🛠️ Registro Taller</h5>
+                <h5 class="fw-bold">🛠️ Registro de Vehiculos en el Taller</h5>
                 <p class="text-muted">Gestiona y visualiza todos los vehículos en el taller.</p>
                 <a href="{% url 'registro-taller' %}" class="btn btn-outline-primary w-100">
                     Ingresar
