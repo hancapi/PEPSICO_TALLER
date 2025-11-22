@@ -1,6 +1,6 @@
 # ordenestrabajo/admin.py
 from django.contrib import admin
-from .models import OrdenTrabajo, Pausa
+from .models import OrdenTrabajo, Pausa, SolicitudIngresoVehiculo
 
 # ============================================================
 # ORDEN DE TRABAJO
@@ -38,3 +38,22 @@ class PausaAdmin(admin.ModelAdmin):
     list_filter = ('activo', 'inicio', 'fin')
     search_fields = ('ot__ot_id', 'motivo', 'observacion')
     ordering = ('-inicio',)
+
+
+# ============================================================
+# SOLICITUDES DE INGRESO DE VEHÍCULOS
+# ============================================================
+@admin.register(SolicitudIngresoVehiculo)
+class SolicitudIngresoVehiculoAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "vehiculo",
+        "chofer",
+        "taller",
+        "fecha_solicitada",
+        "estado",
+        "creado_en",
+    )
+    list_filter = ("estado", "taller", "fecha_solicitada")
+    search_fields = ("vehiculo__patente", "chofer__nombre", "chofer__rut")
+    ordering = ("-creado_en",)

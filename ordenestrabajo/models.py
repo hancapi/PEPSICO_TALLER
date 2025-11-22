@@ -74,6 +74,56 @@ class OrdenTrabajo(models.Model):
     def __str__(self):
         return f"OT #{self.ot_id} - {self.patente_id} ({self.estado})"
     
+class SolicitudIngresoVehiculo(models.Model):
+    ESTADO_CHOICES = (
+        ("PENDIENTE", "Pendiente"),
+        ("APROBADA", "Aprobada"),
+        ("RECHAZADA", "Rechazada"),
+        ("CERRADA", "Cerrada"),
+    )
+
+    id = models.AutoField(primary_key=True)
+
+    vehiculo = models.ForeignKey(
+        Vehiculo,
+        on_delete=models.PROTECT,
+        related_name="solicitudes_ingreso",
+    )
+
+    chofer = models.ForeignKey(
+        Empleado,
+        on_delete=models.PROTECT,
+        related_name="solicitudes_ingreso",
+    )
+
+    taller = models.ForeignKey(
+        Taller,
+        on_delete=models.PROTECT,
+        related_name="solicitudes_ingreso",
+    )
+
+    # Día solicitado por el chofer (SIN hora)
+    fecha_solicitada = models.DateField()
+
+    descripcion = models.CharField(max_length=255, blank=True)
+
+    estado = models.CharField(
+        max_length=10,
+        choices=ESTADO_CHOICES,
+        default="PENDIENTE",
+    )
+
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "solicitudes_ingreso_vehiculo"
+        ordering = ["-creado_en"]
+        verbose_name = "Solicitud de Ingreso de Vehículo"
+        verbose_name_plural = "Solicitudes de Ingreso de Vehículos"
+
+    def __str__(self):
+        return f"{self.vehiculo.patente} - {self.fecha_solicitada} ({self.estado})"
+    
 class Pausa(models.Model):
     class Meta:
         db_table = 'pausas'
@@ -93,3 +143,4 @@ class Pausa(models.Model):
     def __str__(self):
         estado = 'activa' if self.activo else 'cerrada'
         return f"Pausa OT {self.ot_id} - {self.ot.patente_id} ({estado})"
+    
