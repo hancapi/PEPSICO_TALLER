@@ -194,7 +194,7 @@ def api_ficha(request):
     kpi_ots = OrdenTrabajo.objects.filter(patente_id=patente).count()
 
     # OT ACTUAL
-    estados_activos = ["Pendiente", "En Taller", "En Proceso", "Pausado"]
+    estados_activos = ["Pendiente", "Recibida", "En Taller", "En Proceso", "Pausado"]
 
     ot_actual = (
         OrdenTrabajo.objects
@@ -202,6 +202,7 @@ def api_ficha(request):
             .order_by('-fecha_ingreso', '-hora_ingreso')
             .first()
     )
+
 
     ot_payload = None
     if ot_actual:
@@ -341,6 +342,8 @@ def api_ficha_ots(request):
             'estado': ot.estado,
             'rut': getattr(ot.rut, 'rut', None),
             'rut_creador': getattr(ot.rut_creador, 'rut', None),
+            'descripcion': (ot.descripcion or '').strip(),
+
         })
 
     return JsonResponse({'success': True, 'items': items})

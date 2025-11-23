@@ -123,14 +123,7 @@
             </form>
 
             <!-- CONTENEDOR DOCUMENTOS (3 GRUPOS) -->
-            <!-- IMPORTANTE: ahora es un <div>, no <ul> -->
             <div id="listaDocumentos" class="list-group"></div>
-
-            <!-- Aquí el JS insertará dinámicamente:
-                 - Sección OT actual (li dentro del div)
-                 - Bloques de OTs finalizadas (div)
-                 - Bloques de documentos de vehículo (div)
-            -->
         </div>
 
         <!-- PANEL CAMBIO ESTADO -->
@@ -141,15 +134,13 @@
                 <div class="col-md-4">
                     <select id="estadoNuevo" class="form-select">
                         <option value="">Seleccione estado…</option>
-                        <option value="En Proceso">En Proceso</option>
-                        <option value="Pausado">Pausado</option>
-                        <option value="Finalizado">Finalizado</option>
+                        {# opciones se llenan dinámicamente desde ficha_vehiculo.js #}
                     </select>
                 </div>
 
                 <div class="col-md-8">
                     <input id="comentarioEstado" type="text" class="form-control"
-                           placeholder="Comentario (obligatorio si Finalizado)">
+                           placeholder="Comentario (obligatorio si Finalizado / No Reparable / Sin Repuestos)">
                 </div>
             </div>
 

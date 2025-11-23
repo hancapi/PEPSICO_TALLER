@@ -30,9 +30,9 @@ def api_cambiar_estado(request):
     - Pendiente  -> Recibida
     - Recibida   -> En Proceso, Pausado
     - En Taller  -> En Proceso, Pausado
-    - En Proceso -> Pausado, Finalizado
+    - En Proceso -> Pausado, Finalizado, No Reparable, Sin Repuestos
     - Pausado    -> En Taller, En Proceso, No Reparable, Sin Repuestos
-                    (❌ NO puede ir a Finalizado)
+                    (NO puede ir a Finalizado)
 
     Estados finales: Finalizado, No Reparable, Sin Repuestos
       - Se setea fecha_salida.
@@ -40,6 +40,8 @@ def api_cambiar_estado(request):
 
     Estados de trabajo en taller: Recibida, En Taller, En Proceso, Pausado
       - El vehículo queda en estado "En Taller".
+
+    🔹 Comentario: obligatorio en cualquier cambio de estado.
     """
 
     if request.method != "POST":
@@ -58,14 +60,18 @@ def api_cambiar_estado(request):
         )
 
     # =============================
-    #  Reglas para estados finales
+    #  Estados finales
     # =============================
     ESTADOS_FINALES = ["Finalizado", "No Reparable", "Sin Repuestos"]
-    if nuevo_estado in ESTADOS_FINALES and comentario == "":
+
+    # =============================
+    #  Comentario obligatorio SIEMPRE
+    # =============================
+    if comentario == "":
         return JsonResponse(
             {
                 "success": False,
-                "message": "Debe ingresar un comentario para este estado.",
+                "message": "Debe ingresar un comentario para cambiar el estado.",
             }
         )
 
@@ -99,8 +105,9 @@ def api_cambiar_estado(request):
         "Pendiente": ["Recibida"],
         "Recibida": ["En Proceso", "Pausado"],
         "En Taller": ["En Proceso", "Pausado"],
-        "En Proceso": ["Pausado", "Finalizado"],
-        # 👇 Regla nueva: no puede ir a Finalizado desde Pausado
+        # Desde En Proceso también puede ir a No Reparable / Sin Repuestos
+        "En Proceso": ["Pausado", "Finalizado", "No Reparable", "Sin Repuestos"],
+        # Desde Pausado: NO puede ir a Finalizado
         "Pausado": ["En Taller", "En Proceso", "No Reparable", "Sin Repuestos"],
     }
 
@@ -116,8 +123,12 @@ def api_cambiar_estado(request):
     #  Actualizar OT y Vehículo
     # =============================
     ot.estado = nuevo_estado
+
+    # Agregar comentario a la bitácora de la OT
     if comentario:
-        ot.descripcion = (ot.descripcion or "") + f"\n[{request.user.username}] {comentario}"
+        base = (ot.descripcion or "").rstrip()
+        prefix = "\n" if base else ""
+        ot.descripcion = f"{base}{prefix}[{request.user.username}] {comentario}"
 
     # Estados finales cierran la OT
     if nuevo_estado in ESTADOS_FINALES:
@@ -127,7 +138,7 @@ def api_cambiar_estado(request):
     elif nuevo_estado in ["Recibida", "En Taller", "En Proceso", "Pausado"]:
         veh.estado = "En Taller"
     else:
-        # Fallback defensivo (por si se agrega algún estado nuevo)
+        # Fallback defensivo
         veh.estado = nuevo_estado
 
     veh.save()

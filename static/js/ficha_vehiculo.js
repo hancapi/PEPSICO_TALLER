@@ -60,14 +60,14 @@
 
     // Documentos
     const cardDocumentos = $('#cardDocumentos');
-    const listaDocs = $('#listaDocumentos');  // ← documentos OT actual
+    const listaDocs = $('#listaDocumentos');
     const formUpload = $('#formUploadDoc');
     const docArchivo = $('#docArchivo');
     const docTitulo = $('#docTitulo');
     const docTipo = $('#docTipo');
     const docMsg = $('#docMsg');
 
-    // NUEVAS SECCIONES
+    // NUEVAS SECCIONES DE DOCUMENTOS
     let listaDocsFinalizadas = null;
     let listaDocsVehiculo = null;
 
@@ -76,130 +76,160 @@
         alertBox.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
     }
 
+    // ============================================================
+    // LIMPIAR FICHA
+    // ============================================================
+    function limpiarFicha() {
+        infoBox.classList.add("hidden");
+        otCard.style.display = "none";
+        panelCambio.style.display = "none";
+        cardDocumentos.style.display = "none";
 
-// ============================================================
-// LIMPIAR FICHA
-// ============================================================
-function limpiarFicha() {
-    // Ocultamos ficha y paneles
-    infoBox.classList.add("hidden");
-    otCard.style.display = "none";
-    panelCambio.style.display = "none";
-    cardDocumentos.style.display = "none";
+        v_patente.textContent = "";
+        v_marca.textContent = "";
+        v_modelo.textContent = "";
+        v_anio.textContent = "";
+        v_tipo.textContent = "";
+        v_ubicacion.textContent = "";
+        v_estado.textContent = "";
 
-    // Limpiamos campos de vehículo
-    v_patente.textContent = "";
-    v_marca.textContent = "";
-    v_modelo.textContent = "";
-    v_anio.textContent = "";
-    v_tipo.textContent = "";
-    v_ubicacion.textContent = "";
-    v_estado.textContent = "";
+        k_ots.textContent = "";
+        k_inc.textContent = "";
+        k_pres.textContent = "";
+        k_llave.textContent = "";
 
-    // Limpiamos KPIs
-    k_ots.textContent = "";
-    k_inc.textContent = "";
-    k_pres.textContent = "";
-    k_llave.textContent = "";
-
-    // Limpiamos historial y documentos
-    timeline.innerHTML = "";
-    if (listaDocs) listaDocs.innerHTML = "";
-    if (listaDocsFinalizadas) listaDocsFinalizadas.innerHTML = "";
-    if (listaDocsVehiculo) listaDocsVehiculo.innerHTML = "";
-}
-
-// ============================================================
-// BUSCAR VEHÍCULO
-// ============================================================
-async function buscarVehiculo() {
-    const patente = (inputPatente.value || "").trim().toUpperCase();
-
-    if (!patente) {
-        showAlert("warning", "Debe ingresar una patente.");
-        limpiarFicha();
-        return;
+        timeline.innerHTML = "";
+        if (listaDocs) listaDocs.innerHTML = "";
+        if (listaDocsFinalizadas) listaDocsFinalizadas.innerHTML = "";
+        if (listaDocsVehiculo) listaDocsVehiculo.innerHTML = "";
     }
 
-    showAlert("info", "Buscando…");
+    // ============================================================
+    // CONFIGURAR PANEL DE CAMBIO DE ESTADO
+    // ============================================================
+    function configurarPanelCambioEstado(estadoActual) {
+        const opcionesPorEstado = {
+            // Desde la ficha no movemos Pendiente -> Recibida (eso se hace en Registro Taller)
+            "Pendiente": [],
+            "Recibida": ["En Proceso", "Pausado"],
+            "En Taller": ["En Proceso", "Pausado"],
+            // También puede ir a No Reparable / Sin Repuestos
+            "En Proceso": ["Pausado", "Finalizado", "No Reparable", "Sin Repuestos"],
+            // Desde Pausado: NO se permite Finalizado
+            "Pausado": ["En Taller", "En Proceso", "No Reparable", "Sin Repuestos"],
+        };
 
-    try {
-        const url = `/vehiculos/api/ficha/?patente=${encodeURIComponent(patente)}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const opciones = opcionesPorEstado[estadoActual] || [];
 
-        if (!data.success) {
-            showAlert("danger", data.message);
-            return;
-        }
+        // Reiniciar select
+        estadoNuevo.innerHTML = `<option value="">Seleccione estado…</option>`;
 
-        if (!data.vehiculo) {
-            limpiarFicha();
-            showAlert("warning", `No existe información del vehículo <b>${patente}</b>`);
-            return;
-        }
-
-        alertBox.innerHTML = "";
-        infoBox.classList.remove("hidden");
-
-        // Datos vehículo
-        v_patente.textContent = data.vehiculo.patente;
-        v_marca.textContent = data.vehiculo.marca;
-        v_modelo.textContent = data.vehiculo.modelo;
-        v_anio.textContent = data.vehiculo.anio ?? '—';
-        v_tipo.textContent = data.vehiculo.tipo;
-        v_ubicacion.textContent = data.vehiculo.ubicacion;
-        v_estado.textContent = data.vehiculo.estado;
-
-        // KPIs
-        k_ots.textContent = data.kpis.ots;
-        k_inc.textContent = data.kpis.incidentes ?? 0;
-        k_pres.textContent = data.kpis.prestamos ?? 0;
-        k_llave.textContent = data.kpis.llave ?? 0;
-
-        // OT actual
-        if (data.ot_actual) {
-            otCard.style.display = "block";
-            panelCambio.style.display = "block";
-            cardDocumentos.style.display = "block";
-
-            ot_id.textContent = data.ot_actual.id;
-            ot_estado.textContent = data.ot_actual.estado;
-            ot_fecha.textContent = `${data.ot_actual.fecha} ${data.ot_actual.hora || ""}`;
-            ot_taller.textContent = data.ot_actual.taller_nombre;
-
-            cargarDocumentos(data.ot_actual.id, patente);
-
-        } else {
-            otCard.style.display = "none";
+        if (!opciones.length) {
             panelCambio.style.display = "none";
-            cardDocumentos.style.display = "block";
-
-            ot_id.textContent = "";
-            ot_estado.textContent = "";
-            ot_fecha.textContent = "";
-            ot_taller.textContent = "";
-
-            cargarDocumentos(null, patente);
+            return;
         }
 
-        cargarHistorial(patente);
+        opciones.forEach(texto => {
+            const opt = document.createElement("option");
+            opt.value = texto;
+            opt.textContent = texto;
+            estadoNuevo.appendChild(opt);
+        });
 
-    } catch (err) {
-        console.error(err);
-        showAlert("danger", "Error de red.");
+        comentarioEstado.value = "";
+        estadoMsg.innerHTML = "";
+        panelCambio.style.display = "block";
     }
-}
 
-// ============================================================
-// EVENTO INPUT EN EL BUSCADOR
-// ============================================================
-inputPatente.addEventListener("input", () => {
-    const patente = (inputPatente.value || "").trim();
-    if (!patente) {
-        limpiarFicha(); // 🔹 sin alerta, solo limpieza
+    // ============================================================
+    // BUSCAR VEHÍCULO
+    // ============================================================
+    async function buscarVehiculo() {
+        const patente = (inputPatente.value || "").trim().toUpperCase();
+
+        if (!patente) {
+            showAlert("warning", "Debe ingresar una patente.");
+            limpiarFicha();
+            return;
+        }
+
+        showAlert("info", "Buscando…");
+
+        try {
+            const url = `/vehiculos/api/ficha/?patente=${encodeURIComponent(patente)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (!data.success) {
+                showAlert("danger", data.message);
+                return;
+            }
+
+            if (!data.vehiculo) {
+                limpiarFicha();
+                showAlert("warning", `No existe información del vehículo <b>${patente}</b>`);
+                return;
+            }
+
+            alertBox.innerHTML = "";
+            infoBox.classList.remove("hidden");
+
+            // Datos vehículo
+            v_patente.textContent = data.vehiculo.patente;
+            v_marca.textContent = data.vehiculo.marca;
+            v_modelo.textContent = data.vehiculo.modelo;
+            v_anio.textContent = data.vehiculo.anio ?? '—';
+            v_tipo.textContent = data.vehiculo.tipo;
+            v_ubicacion.textContent = data.vehiculo.ubicacion;
+            v_estado.textContent = data.vehiculo.estado;
+
+            // KPIs
+            k_ots.textContent = data.kpis.ots;
+            k_inc.textContent = data.kpis.incidentes ?? 0;
+            k_pres.textContent = data.kpis.prestamos ?? 0;
+            k_llave.textContent = data.kpis.llave ?? 0;
+
+            // OT actual
+            if (data.ot_actual) {
+                otCard.style.display = "block";
+                cardDocumentos.style.display = "block";
+
+                ot_id.textContent = data.ot_actual.id;
+                ot_estado.textContent = data.ot_actual.estado;
+                ot_fecha.textContent = `${data.ot_actual.fecha} ${data.ot_actual.hora || ""}`;
+                ot_taller.textContent = data.ot_actual.taller_nombre;
+
+                configurarPanelCambioEstado(data.ot_actual.estado);
+                cargarDocumentos(data.ot_actual.id, patente);
+
+            } else {
+                otCard.style.display = "none";
+                panelCambio.style.display = "none";
+                cardDocumentos.style.display = "block";
+
+                ot_id.textContent = "";
+                ot_estado.textContent = "";
+                ot_fecha.textContent = "";
+                ot_taller.textContent = "";
+
+                cargarDocumentos(null, patente);
+            }
+
+            cargarHistorial(patente);
+
+        } catch (err) {
+            console.error(err);
+            showAlert("danger", "Error de red.");
+        }
     }
-});
+
+    // Cuando borras la patente, limpiamos la ficha
+    inputPatente.addEventListener("input", () => {
+        const patente = (inputPatente.value || "").trim();
+        if (!patente) {
+            limpiarFicha();
+        }
+    });
 
     // ============================================================
     // NUEVO FORMATO DOCUMENTOS AGRUPADOS
@@ -219,9 +249,6 @@ inputPatente.addEventListener("input", () => {
                 return;
             }
 
-            // -----------------------------------------
-            // ADAPTACIÓN A BACKEND NUEVO + ANTIGUO
-            // -----------------------------------------
             let docsActual = [];
             let docsFinalizadas = [];
             let docsVehiculo = [];
@@ -231,11 +258,9 @@ inputPatente.addEventListener("input", () => {
                 docsActual = data.actual || [];
                 docsFinalizadas = data.finalizadas || [];
                 docsVehiculo = data.vehiculo || [];
-            } 
-            else if (data.documentos) {
+            } else if (data.documentos) {
                 // Backend antiguo
                 const todos = data.documentos;
-
                 docsActual = otId ? todos.filter(d => d.ot_id == otId) : [];
                 docsFinalizadas = todos.filter(d => d.ot_id && d.ot_id != otId);
                 docsVehiculo = todos.filter(d => !d.ot_id);
@@ -248,23 +273,17 @@ inputPatente.addEventListener("input", () => {
             listaDocsFinalizadas = null;
             listaDocsVehiculo = null;
 
-            // -----------------------------------------
-            // 1) OT ACTUAL
-            // -----------------------------------------
+            // 1) OT actual
             if (docsActual.length) {
                 renderListaSimple(listaDocs, docsActual);
             } else {
                 listaDocs.innerHTML = `<li class="list-group-item text-muted">Sin documentos de OT actual.</li>`;
             }
 
-            // -----------------------------------------
             // 2) OTs finalizadas
-            // -----------------------------------------
             renderDocsFinalizadas(docsFinalizadas);
 
-            // -----------------------------------------
             // 3) Docs del vehículo
-            // -----------------------------------------
             renderDocsVehiculo(docsVehiculo);
 
         } catch (err) {
@@ -272,7 +291,6 @@ inputPatente.addEventListener("input", () => {
             listaDocs.innerHTML = `<li class="list-group-item text-danger">Error cargando documentos.</li>`;
         }
     }
-
 
     // Render simple (solo documentos)
     function renderListaSimple(container, docs) {
@@ -292,7 +310,6 @@ inputPatente.addEventListener("input", () => {
             container.appendChild(li);
         });
     }
-
 
     // Render OTs finalizadas
     function renderDocsFinalizadas(lista) {
@@ -334,7 +351,6 @@ inputPatente.addEventListener("input", () => {
         });
     }
 
-
     // Render documentos sueltos del vehículo
     function renderDocsVehiculo(lista) {
 
@@ -364,7 +380,6 @@ inputPatente.addEventListener("input", () => {
             `;
         });
     }
-
 
     // ============================================================
     // SUBIR DOCUMENTO
@@ -421,8 +436,6 @@ inputPatente.addEventListener("input", () => {
         }
     });
 
-
-
     // ============================================================
     // CAMBIO DE ESTADO
     // ============================================================
@@ -438,8 +451,9 @@ inputPatente.addEventListener("input", () => {
             return;
         }
 
-        if (nuevo === "Finalizado" && comentario === "") {
-            estadoMsg.innerHTML = `<div class="alert alert-warning">Debe agregar un comentario para finalizar.</div>`;
+        // Comentario obligatorio SIEMPRE
+        if (comentario === "") {
+            estadoMsg.innerHTML = `<div class="alert alert-warning">Debe agregar un comentario para cambiar el estado.</div>`;
             return;
         }
 
@@ -463,15 +477,13 @@ inputPatente.addEventListener("input", () => {
             }
 
             estadoMsg.innerHTML = `<div class="alert alert-success">Estado actualizado correctamente.</div>`;
-
-            buscarVehiculo();
+            buscarVehiculo();  // recarga ficha con estado real
 
         } catch (err) {
             console.error(err);
             estadoMsg.innerHTML = `<div class="alert alert-danger">Error al actualizar estado.</div>`;
         }
     }
-
 
     // ============================================================
     // TIMELINE
@@ -492,10 +504,16 @@ inputPatente.addEventListener("input", () => {
 
             data.items.forEach(ot => {
                 const li = document.createElement("li");
+
+                const descHtml = ot.descripcion && ot.descripcion.trim()
+                    ? `<small class="text-muted d-block mt-1" style="white-space:pre-line;">${ot.descripcion}</small>`
+                    : "";
+
                 li.innerHTML = `
                     <b>OT #${ot.id}</b> — ${ot.estado}<br>
                     <small class="text-muted">${ot.fecha} ${ot.hora || ""}</small><br>
                     <small>Taller: ${ot.taller_nombre || ot.taller_id}</small>
+                    ${descHtml}
                 `;
                 timeline.appendChild(li);
             });
@@ -505,7 +523,6 @@ inputPatente.addEventListener("input", () => {
             timeline.innerHTML = `<li class="text-danger">Error cargando historial.</li>`;
         }
     }
-
 
     // ============================================================
     // EVENTOS
