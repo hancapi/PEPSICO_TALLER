@@ -293,28 +293,30 @@ def api_ficha(request):
         }
     })
 
-
-# ==========================================================
-# API Historial
-# ==========================================================
-
 @require_GET
 @login_required
 @todos_roles
 def api_ficha_ots(request):
-    """Historial de OTs por vehículo"""
+    """Historial de OTs por vehículo (para ficha_vehiculo)"""
     patente = (request.GET.get('patente') or "").strip().upper()
     if not patente:
-        return JsonResponse({'success': False, 'message': 'Parámetro patente requerido'}, status=400)
+        return JsonResponse(
+            {'success': False, 'message': 'Parámetro patente requerido'},
+            status=400
+        )
 
-    dfrom, dto = _range_from_request(request)
+    # ==============================
+    #  Base: TODAS las OTs del veh
+    # ==============================
+    qs = OrdenTrabajo.objects.filter(patente_id=patente)
+
+    # Solo aplicamos rango de fechas si el frontend manda from/to
+    if request.GET.get("from") or request.GET.get("to"):
+        dfrom, dto = _range_from_request(request)
+        qs = qs.filter(fecha_ingreso__range=(dfrom, dto))
+
     estado = (request.GET.get('estado') or "").strip()
     taller = (request.GET.get('taller') or "").strip()
-
-    qs = OrdenTrabajo.objects.filter(
-        patente_id=patente,
-        fecha_ingreso__range=(dfrom, dto)
-    )
 
     if estado:
         qs = qs.filter(estado=estado)
@@ -323,13 +325,19 @@ def api_ficha_ots(request):
         if taller.isdigit():
             qs = qs.filter(taller_id=int(taller))
         else:
-            ids = list(Taller.objects.filter(nombre__icontains=taller)
-                                      .values_list('taller_id', flat=True))
+            ids = list(
+                Taller.objects
+                      .filter(nombre__icontains=taller)
+                      .values_list('taller_id', flat=True)
+            )
             qs = qs.filter(taller_id__in=ids or [-1])
 
     taller_ids = list(qs.values_list('taller_id', flat=True))
-    taller_map = dict(Taller.objects.filter(taller_id__in=taller_ids)
-                                    .values_list('taller_id', 'nombre'))
+    taller_map = dict(
+        Taller.objects
+              .filter(taller_id__in=taller_ids)
+              .values_list('taller_id', 'nombre')
+    )
 
     items = []
     for ot in qs.order_by('-fecha_ingreso', '-hora_ingreso', '-ot_id'):
@@ -342,8 +350,7 @@ def api_ficha_ots(request):
             'estado': ot.estado,
             'rut': getattr(ot.rut, 'rut', None),
             'rut_creador': getattr(ot.rut_creador, 'rut', None),
-            'descripcion': (ot.descripcion or '').strip(),
-
+            'descripcion': ot.descripcion or "",
         })
 
     return JsonResponse({'success': True, 'items': items})

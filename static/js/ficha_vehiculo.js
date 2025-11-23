@@ -55,7 +55,7 @@
     const estadoMsg = $('#estadoMsg');
     const btnGuardarEstado = $('#btnGuardarEstado');
 
-    // Timeline
+    // Timeline (ahora es <tbody id="timeline">)
     const timeline = $('#timeline');
 
     // Documentos
@@ -98,7 +98,8 @@
         k_pres.textContent = "";
         k_llave.textContent = "";
 
-        timeline.innerHTML = "";
+        if (timeline) timeline.innerHTML = "";
+
         if (listaDocs) listaDocs.innerHTML = "";
         if (listaDocsFinalizadas) listaDocsFinalizadas.innerHTML = "";
         if (listaDocsVehiculo) listaDocsVehiculo.innerHTML = "";
@@ -486,7 +487,7 @@
     }
 
     // ============================================================
-    // TIMELINE
+    // TIMELINE -> TABLA
     // ============================================================
     async function cargarHistorial(patente) {
         const url = `/vehiculos/api/ficha/ots/?patente=${encodeURIComponent(patente)}`;
@@ -498,29 +499,38 @@
             timeline.innerHTML = "";
 
             if (!data.items?.length) {
-                timeline.innerHTML = `<li class="text-muted">Sin historial.</li>`;
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td colspan="5" class="text-muted">Sin historial.</td>
+                `;
+                timeline.appendChild(tr);
                 return;
             }
 
             data.items.forEach(ot => {
-                const li = document.createElement("li");
+                const tr = document.createElement("tr");
 
                 const descHtml = ot.descripcion && ot.descripcion.trim()
-                    ? `<small class="text-muted d-block mt-1" style="white-space:pre-line;">${ot.descripcion}</small>`
-                    : "";
+                    ? `<small class="text-muted" style="white-space:pre-line;">${ot.descripcion}</small>`
+                    : `<small class="text-muted">—</small>`;
 
-                li.innerHTML = `
-                    <b>OT #${ot.id}</b> — ${ot.estado}<br>
-                    <small class="text-muted">${ot.fecha} ${ot.hora || ""}</small><br>
-                    <small>Taller: ${ot.taller_nombre || ot.taller_id}</small>
-                    ${descHtml}
+                tr.innerHTML = `
+                    <td class="fw-bold text-primary">#${ot.id}</td>
+                    <td>${ot.fecha} ${ot.hora || ""}</td>
+                    <td>${ot.taller_nombre || ot.taller_id || "-"}</td>
+                    <td>${ot.estado}</td>
+                    <td>${descHtml}</td>
                 `;
-                timeline.appendChild(li);
+                timeline.appendChild(tr);
             });
 
         } catch (err) {
             console.error(err);
-            timeline.innerHTML = `<li class="text-danger">Error cargando historial.</li>`;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td colspan="5" class="text-danger">Error cargando historial.</td>
+            `;
+            timeline.appendChild(tr);
         }
     }
 

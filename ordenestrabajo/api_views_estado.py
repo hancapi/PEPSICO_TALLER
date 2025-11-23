@@ -4,6 +4,7 @@ from datetime import date
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 
+from autenticacion.models import Empleado
 from autenticacion.roles import mecanico_or_supervisor
 from vehiculos.models import Vehiculo
 from ordenestrabajo.models import OrdenTrabajo
@@ -99,6 +100,31 @@ def api_cambiar_estado(request):
         )
 
     # =============================
+    #  Nombre y cargo del empleado que hace el cambio
+    # =============================
+    empleado = Empleado.objects.filter(usuario=request.user.username).first()
+
+    display_nombre = (
+        empleado.nombre
+        if empleado and empleado.nombre
+        else (request.user.get_full_name() or request.user.username)
+    )
+
+    if empleado and empleado.cargo:
+        cargo_raw = empleado.cargo.upper()
+        if cargo_raw == "MECANICO":
+            cargo_label = "Mecánico"
+        elif cargo_raw == "SUPERVISOR":
+            cargo_label = "Supervisor"
+        else:
+            cargo_label = empleado.cargo.title()
+    else:
+        cargo_label = "Usuario"
+
+    # Formato final: [Supervisor Nicolás] / [Mecánico Harol] / [Usuario pepito]
+    autor_tag = f"[{cargo_label} {display_nombre}]"
+
+    # =============================
     #  Matriz de transiciones
     # =============================
     TRANSICIONES_VALIDAS = {
@@ -124,11 +150,11 @@ def api_cambiar_estado(request):
     # =============================
     ot.estado = nuevo_estado
 
-    # Agregar comentario a la bitácora de la OT
+    # Agregar comentario a la bitácora de la OT (cargo + nombre)
     if comentario:
         base = (ot.descripcion or "").rstrip()
         prefix = "\n" if base else ""
-        ot.descripcion = f"{base}{prefix}[{request.user.username}] {comentario}"
+        ot.descripcion = f"{base}{prefix}{autor_tag} {comentario}"
 
     # Estados finales cierran la OT
     if nuevo_estado in ESTADOS_FINALES:

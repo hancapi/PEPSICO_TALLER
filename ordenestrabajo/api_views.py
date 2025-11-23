@@ -253,6 +253,11 @@ def api_crear_ingreso(request):
 
     # No se toca vehiculo.estado ni ubicacion aquí.
     # Eso ocurrirá cuando el supervisor apruebe y genere la OT.
+    # 👇 Extra: si el vehículo quedó en "En Taller" por pruebas antiguas y
+    #           hoy NO tiene OT activa, lo devolvemos a "Disponible".
+    if vehiculo.estado == "En Taller":
+        vehiculo.estado = "Disponible"
+        vehiculo.save()
 
     return JsonResponse(
         {
@@ -350,9 +355,28 @@ def api_asignar_ot(request):
             {"success": False, "message": "Mecánico inválido."}
         )
 
+    # 🔹 nombre y cargo legible del supervisor
+    display_nombre = supervisor.nombre or supervisor.usuario
+    if supervisor.cargo:
+        cargo_raw = supervisor.cargo.upper()
+        if cargo_raw == "SUPERVISOR":
+            cargo_label = "Supervisor"
+        elif cargo_raw == "MECANICO":
+            cargo_label = "Mecánico"
+        else:
+            cargo_label = supervisor.cargo.title()
+    else:
+        cargo_label = "Usuario"
+
+    autor_tag = f"[{cargo_label} {display_nombre}]"
+
     ot.estado = "En Taller"
     ot.rut = mec
-    ot.descripcion = (ot.descripcion or "") + f"\n[Supervisor {supervisor.usuario}] {comentario}"
+
+    base = (ot.descripcion or "").rstrip()
+    prefix = "\n" if base else ""
+    ot.descripcion = f"{base}{prefix}{autor_tag} {comentario}"
+
     ot.save()
 
     veh = ot.patente
@@ -628,8 +652,23 @@ def api_supervisor_aprobar_solicitud(request):
             status=409,
         )
 
-    # Armar descripción final incorporando el módulo/pasillo
-    descripcion_ot = f"[Módulo: {modulo}] {comentario}"
+    # 🔹 nombre y cargo legible del supervisor
+    display_nombre = supervisor.nombre or supervisor.usuario
+    if supervisor.cargo:
+        cargo_raw = supervisor.cargo.upper()
+        if cargo_raw == "SUPERVISOR":
+            cargo_label = "Supervisor"
+        elif cargo_raw == "MECANICO":
+            cargo_label = "Mecánico"
+        else:
+            cargo_label = supervisor.cargo.title()
+    else:
+        cargo_label = "Usuario"
+
+    autor_tag = f"[{cargo_label} {display_nombre}]"
+
+    # Armar descripción final incorporando AUTOR + MÓDULO/PASILLO
+    descripcion_ot = f"{autor_tag} [{modulo}] {comentario}"
 
     # Crear OT
     ot = OrdenTrabajo.objects.create(

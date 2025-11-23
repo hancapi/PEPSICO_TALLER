@@ -12,6 +12,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 // ======================================================
+//  Helper CSRF
+// ======================================================
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        for (const cookie of document.cookie.split(";")) {
+            const c = cookie.trim();
+            if (c.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(c.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie("csrftoken");
+
+
+// ======================================================
+//  Helper: pedir comentario obligatorio
+// ======================================================
+function pedirComentario(mensaje) {
+    const txt = prompt(mensaje || "Ingrese comentario para el cambio de estado:");
+    if (!txt || txt.trim() === "") {
+        alert("Debe ingresar un comentario.");
+        return null;
+    }
+    return txt.trim();
+}
+
+
+// ======================================================
 //  Cargar vehículos según el modo (mecánico / supervisor)
 // ======================================================
 async function cargarVehiculos() {
@@ -58,8 +90,12 @@ function enlazarBotonesCambioEstado() {
     document.querySelectorAll(".btn-recibir").forEach((btn) => {
         btn.addEventListener("click", () => {
             const patente = btn.dataset.patente;
-            // Marcamos la OT como "Recibida" cuando el camión llega físicamente al taller
-            enviarCambioEstado(patente, "Recibida", "Vehículo recibido en taller.");
+
+            // Puedes dejar el texto fijo o también pedir comentario aquí.
+            const comentario = pedirComentario("Comentario al recibir el vehículo en taller:");
+            if (!comentario) return;
+
+            enviarCambioEstado(patente, "Recibida", comentario);
         });
     });
 
@@ -67,12 +103,8 @@ function enlazarBotonesCambioEstado() {
     document.querySelectorAll(".btn-finalizar").forEach((btn) => {
         btn.addEventListener("click", () => {
             const patente = btn.dataset.patente;
-            const comentario = prompt("Ingrese comentario obligatorio para finalizar:");
-
-            if (!comentario || comentario.trim() === "") {
-                alert("Debe ingresar un comentario.");
-                return;
-            }
+            const comentario = pedirComentario("Ingrese comentario obligatorio para finalizar:");
+            if (!comentario) return;
 
             enviarCambioEstado(patente, "Finalizado", comentario);
         });
@@ -81,14 +113,22 @@ function enlazarBotonesCambioEstado() {
     // PAUSAR
     document.querySelectorAll(".btn-pausar").forEach((btn) => {
         btn.addEventListener("click", () => {
-            enviarCambioEstado(btn.dataset.patente, "Pausado");
+            const patente = btn.dataset.patente;
+            const comentario = pedirComentario("Motivo de pausa de la OT:");
+            if (!comentario) return;
+
+            enviarCambioEstado(patente, "Pausado", comentario);
         });
     });
 
-    // REANUDAR (Pausado / En Taller -> En Proceso)
+    // REANUDAR (Recibida / Pausado / En Taller -> En Proceso)
     document.querySelectorAll(".btn-reanudar").forEach((btn) => {
         btn.addEventListener("click", () => {
-            enviarCambioEstado(btn.dataset.patente, "En Proceso");
+            const patente = btn.dataset.patente;
+            const comentario = pedirComentario("Comentario para reanudar (qué se hará ahora):");
+            if (!comentario) return;
+
+            enviarCambioEstado(patente, "En Proceso", comentario);
         });
     });
 }
@@ -98,8 +138,6 @@ function enlazarBotonesCambioEstado() {
 //  API Cambio Estado (usa /api/ordenestrabajo/estado/cambiar/)
 // ======================================================
 async function enviarCambioEstado(patente, estado, comentario = "") {
-
-    const csrftoken = getCookie("csrftoken");
 
     const fd = new FormData();
     fd.append("patente", patente);
@@ -126,29 +164,11 @@ async function enviarCambioEstado(patente, estado, comentario = "") {
 
         alert("Estado actualizado correctamente.");
 
-        // 🔁 Refrescar la página completa para ver el estado real (incluyendo badges, botones, etc.)
+        // 🔁 Refrescar la página completa para ver el estado real
         window.location.reload();
 
     } catch (err) {
         console.error(err);
         alert("❌ Error al actualizar estado.");
     }
-}
-
-
-// ======================================================
-//  Helper CSRF
-// ======================================================
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-        for (const cookie of document.cookie.split(";")) {
-            const c = cookie.trim();
-            if (c.startsWith(name + "=")) {
-                cookieValue = decodeURIComponent(c.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
 }
