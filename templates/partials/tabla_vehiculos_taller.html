@@ -33,33 +33,51 @@
                         </td>
 
                         <td>
-                            {% if ot.estado == "En Taller" %}
+                            {% if ot.estado == "Pendiente" %}
+                                <span class="badge bg-secondary">Programado</span>
+                            {% elif ot.estado == "Recibida" %}
+                                <span class="badge bg-info text-dark">Recibida</span>
+                            {% elif ot.estado == "En Taller" %}
                                 <span class="badge bg-warning text-dark">En Taller</span>
                             {% elif ot.estado == "En Proceso" %}
                                 <span class="badge bg-primary">En Proceso</span>
                             {% elif ot.estado == "Pausado" %}
-                                <span class="badge bg-secondary">Pausado</span>
+                                <span class="badge bg-dark">Pausado</span>
+                            {% else %}
+                                <span class="badge bg-light text-muted">{{ ot.estado }}</span>
                             {% endif %}
                         </td>
 
                         <td>
-                            <!-- ▶ REANUDAR -->
-                            <button class="btn btn-sm btn-success btn-reanudar"
-                                    data-patente="{{ ot.patente.patente }}">
-                                ▶
-                            </button>
+                            {% if ot.estado == "Pendiente" %}
+                                <button class="btn btn-sm btn-primary btn-recibir"
+                                        data-patente="{{ ot.patente.patente }}">
+                                    Recibir
+                                </button>
+                            {% else %}
 
-                            <!-- ⏸ PAUSAR -->
-                            <button class="btn btn-sm btn-warning btn-pausar text-dark"
-                                    data-patente="{{ ot.patente.patente }}">
-                                ⏸
-                            </button>
+                                {% if ot.estado == "Pausado" or ot.estado == "Recibida" %}
+                                    <button class="btn btn-sm btn-success btn-reanudar"
+                                            data-patente="{{ ot.patente.patente }}">
+                                        ▶
+                                    </button>
+                                {% endif %}
 
-                            <!-- ✔ FINALIZAR -->
-                            <button class="btn btn-sm btn-danger btn-finalizar"
-                                    data-patente="{{ ot.patente.patente }}">
-                                ✔
-                            </button>
+                                {% if ot.estado == "En Taller" or ot.estado == "En Proceso" or ot.estado == "Recibida" %}
+                                    <button class="btn btn-sm btn-warning btn-pausar text-dark"
+                                            data-patente="{{ ot.patente.patente }}">
+                                        ⏸
+                                    </button>
+                                {% endif %}
+
+                                {% if ot.estado == "En Proceso" %}
+                                    <button class="btn btn-sm btn-danger btn-finalizar"
+                                            data-patente="{{ ot.patente.patente }}">
+                                        ✔
+                                    </button>
+                                {% endif %}
+
+                            {% endif %}
                         </td>
 
                         <td>

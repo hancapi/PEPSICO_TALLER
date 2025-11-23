@@ -1,4 +1,4 @@
-// static/js/asignacion_taller.js
+ // static/js/asignacion_taller.js
 // ======================================================
 //  Asignación de Vehículos — Programación de ingreso
 //  Supervisor aprueba SolicitudesIngresoVehiculo
@@ -39,7 +39,7 @@ function abrirAsignacion(solicitudId, patente, fechaSolicitada) {
         inputFechaIng.value = fechaSolicitada;
     }
 
-    // Hora por defecto (ajusta si quieres otro horario base)
+    // Hora por defecto
     if (inputHoraIng && !inputHoraIng.value) {
         inputHoraIng.value = "09:00";
     }
@@ -108,11 +108,12 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const solicitud_id   = document.getElementById("asig_solicitud_id").value;
-        const mecanico_rut   = document.getElementById("asig_mecanico").value;
-        const comentario     = document.getElementById("asig_comentario").value.trim();
-        const fecha_ingreso  = document.getElementById("asig_fecha_ingreso").value;
-        const hora_ingreso   = document.getElementById("asig_hora_ingreso").value;
+        const solicitud_id  = document.getElementById("asig_solicitud_id").value;
+        const mecanico_rut  = document.getElementById("asig_mecanico").value;
+        const comentario    = document.getElementById("asig_comentario").value.trim();
+        const fecha_ingreso = document.getElementById("asig_fecha_ingreso").value;
+        const hora_ingreso  = document.getElementById("asig_hora_ingreso").value;
+        const modulo        = document.getElementById("asig_modulo").value;
 
         if (!fecha_ingreso) {
             alert("Debe indicar la fecha de ingreso al taller.");
@@ -126,6 +127,10 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Debe ingresar un comentario.");
             return;
         }
+        if (!modulo) {
+            alert("Debe seleccionar un módulo/pasillo del taller.");
+            return;
+        }
 
         const fd = new FormData();
         fd.append("solicitud_id", solicitud_id);
@@ -133,6 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fd.append("comentario", comentario);
         fd.append("fecha", fecha_ingreso);
         fd.append("hora", hora_ingreso);
+        fd.append("modulo", modulo);              // 👈 IMPORTANTE: enviar al backend
 
         try {
             const res = await fetch("/api/ordenestrabajo/supervisor/solicitud/aprobar/", {
@@ -166,7 +172,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Inicial
     enlazarBotonesAsignar();
-    // Cargar solicitudes iniciales desde API (opcional, el HTML ya viene precargado)
     cargarPendientes();
 
     // Auto refresh cada 10s

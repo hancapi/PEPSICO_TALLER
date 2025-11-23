@@ -1,11 +1,13 @@
 // static/js/registro_taller.js
 // ======================================================
 //  REGISTRO TALLER — Auto refresh + cambios de estado
+//  - Mecánico / Supervisor
+//  - Usa /api/ordenestrabajo/... para cargar y actualizar OTs
 // ======================================================
 
 document.addEventListener("DOMContentLoaded", () => {
-    cargarVehiculos();                 // carga inicial
-    setInterval(cargarVehiculos, 10000); // 🔁 refresco cada 10 segundos
+    cargarVehiculos();                   // Carga inicial
+    setInterval(cargarVehiculos, 10000); // 🔁 Refresco cada 10 segundos
 });
 
 
@@ -37,7 +39,7 @@ async function cargarVehiculos() {
 
         contenedor.innerHTML = data.html;
 
-        // 🔥 Muy importante: volver a enlazar botones
+        // 🔥 Muy importante: volver a enlazar botones cada vez que se re-renderiza la tabla
         enlazarBotonesCambioEstado();
 
     } catch (error) {
@@ -47,11 +49,19 @@ async function cargarVehiculos() {
 }
 
 
-
 // ======================================================
 //  Enlazar botones para cambio de estado
 // ======================================================
 function enlazarBotonesCambioEstado() {
+
+    // RECIBIR (Pendiente -> Recibida)
+    document.querySelectorAll(".btn-recibir").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const patente = btn.dataset.patente;
+            // Marcamos la OT como "Recibida" cuando el camión llega físicamente al taller
+            enviarCambioEstado(patente, "Recibida", "Vehículo recibido en taller.");
+        });
+    });
 
     // FINALIZAR
     document.querySelectorAll(".btn-finalizar").forEach((btn) => {
@@ -75,14 +85,13 @@ function enlazarBotonesCambioEstado() {
         });
     });
 
-    // REANUDAR
+    // REANUDAR (Pausado / En Taller -> En Proceso)
     document.querySelectorAll(".btn-reanudar").forEach((btn) => {
         btn.addEventListener("click", () => {
             enviarCambioEstado(btn.dataset.patente, "En Proceso");
         });
     });
 }
-
 
 
 // ======================================================
@@ -117,15 +126,14 @@ async function enviarCambioEstado(patente, estado, comentario = "") {
 
         alert("Estado actualizado correctamente.");
 
-        // 🔁 Refrescar la tabla inmediatamente
-        cargarVehiculos();
+        // 🔁 Refrescar la página completa para ver el estado real (incluyendo badges, botones, etc.)
+        window.location.reload();
 
     } catch (err) {
         console.error(err);
         alert("❌ Error al actualizar estado.");
     }
 }
-
 
 
 // ======================================================

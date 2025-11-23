@@ -6,15 +6,34 @@ from talleres.models import Taller
 
 
 class OrdenTrabajo(models.Model):
+    """
+    Representa una OT en el taller.
+
+    Estados:
+
+    - Pendiente   : OT creada y programada, vehículo aún no llega.
+    - Recibida    : Vehículo llegó físicamente al taller.
+    - En Taller   : Vehículo en proceso (estado legacy / compatibilidad).
+    - En Proceso  : Mecánico trabajando activamente.
+    - Pausado     : Trabajo detenido (espera, bloqueo, etc.).
+    - No Reparable: Se determina que no es reparable.
+    - Sin Repuestos: No hay repuestos para continuar.
+    - Finalizado  : Trabajo terminado correctamente.
+    - Cancelado   : OT cerrada sin ejecución (casos excepcionales).
+    """
+
     class Meta:
-        managed = False
-        db_table = 'ordenestrabajo'
+        managed = False           # ORM no administra la tabla, viene de BD legacy
+        db_table = "ordenestrabajo"
 
     ESTADO_OT_CHOICES = [
         ("Pendiente", "Pendiente"),
+        ("Recibida", "Recibida"),
         ("En Taller", "En Taller"),
         ("En Proceso", "En Proceso"),
-        ("Pausado", "Pausado"),          
+        ("Pausado", "Pausado"),
+        ("No Reparable", "No Reparable"),   # 👈 finales “negativos”
+        ("Sin Repuestos", "Sin Repuestos"), # 👈 finales “negativos”
         ("Finalizado", "Finalizado"),
         ("Cancelado", "Cancelado"),
     ]
@@ -24,38 +43,43 @@ class OrdenTrabajo(models.Model):
     hora_ingreso = models.TimeField(null=True, blank=True)
     fecha_salida = models.DateField(null=True, blank=True)
     descripcion = models.CharField(max_length=255, null=True, blank=True)
-    estado = models.CharField(max_length=50, choices=ESTADO_OT_CHOICES, default="Pendiente")
+
+    estado = models.CharField(
+        max_length=50,
+        choices=ESTADO_OT_CHOICES,
+        default="Pendiente",
+    )
 
     patente = models.ForeignKey(
         Vehiculo,
-        db_column='patente',
-        to_field='patente',
+        db_column="patente",
+        to_field="patente",
         on_delete=models.RESTRICT,
     )
 
     taller = models.ForeignKey(
         Taller,
-        db_column='taller_id',
-        to_field='taller_id',
+        db_column="taller_id",
+        to_field="taller_id",
         on_delete=models.RESTRICT,
     )
 
     rut = models.ForeignKey(
         Empleado,
-        db_column='rut',
-        to_field='rut',
+        db_column="rut",
+        to_field="rut",
         on_delete=models.RESTRICT,
-        related_name='ots_responsable'
+        related_name="ots_responsable",
     )
 
     rut_creador = models.ForeignKey(
         Empleado,
-        db_column='rut_creador',
-        to_field='rut',
+        db_column="rut_creador",
+        to_field="rut",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='ots_creadas'
+        related_name="ots_creadas",
     )
 
     # ======================================================
@@ -65,15 +89,16 @@ class OrdenTrabajo(models.Model):
         if self.patente_id:
             self.patente_id = (
                 self.patente_id.replace(".", "")
-                                .replace("-", "")
-                                .strip()
-                                .upper()
+                .replace("-", "")
+                .strip()
+                .upper()
             )
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"OT #{self.ot_id} - {self.patente_id} ({self.estado})"
-    
+
+
 class SolicitudIngresoVehiculo(models.Model):
     ESTADO_CHOICES = (
         ("PENDIENTE", "Pendiente"),
@@ -123,24 +148,24 @@ class SolicitudIngresoVehiculo(models.Model):
 
     def __str__(self):
         return f"{self.vehiculo.patente} - {self.fecha_solicitada} ({self.estado})"
-    
+
+
 class Pausa(models.Model):
     class Meta:
-        db_table = 'pausas'
-        ordering = ['-inicio']
+        db_table = "pausas"
+        ordering = ["-inicio"]
 
     ot = models.ForeignKey(
         OrdenTrabajo,
         on_delete=models.CASCADE,
-        related_name='pausas'
+        related_name="pausas",
     )
     motivo = models.CharField(max_length=120)
-    observacion = models.TextField(blank=True, default='')
+    observacion = models.TextField(blank=True, default="")
     inicio = models.DateTimeField(auto_now_add=True)
     fin = models.DateTimeField(null=True, blank=True)
     activo = models.BooleanField(default=True)
 
     def __str__(self):
-        estado = 'activa' if self.activo else 'cerrada'
+        estado = "activa" if self.activo else "cerrada"
         return f"Pausa OT {self.ot_id} - {self.ot.patente_id} ({estado})"
-    

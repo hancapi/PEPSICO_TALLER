@@ -1,74 +1,138 @@
 # ordenestrabajo/api_views_estado.py
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from autenticacion.roles import mecanico_or_supervisor
-
-from vehiculos.models import Vehiculo
-from ordenestrabajo.models import OrdenTrabajo
 from datetime import date
 
-def normalize(p):
-    return "" if not p else p.replace(".", "").replace("-", "").strip().upper()
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+from autenticacion.roles import mecanico_or_supervisor
+from vehiculos.models import Vehiculo
+from ordenestrabajo.models import OrdenTrabajo
+
+
+def normalize(patente: str) -> str:
+    """
+    Normaliza la patente:
+    - Elimina puntos y guiones.
+    - Quita espacios.
+    - Convierte a mayúsculas.
+    """
+    return "" if not patente else patente.replace(".", "").replace("-", "").strip().upper()
+
 
 @login_required
 @mecanico_or_supervisor
 def api_cambiar_estado(request):
+    """
+    Cambia el estado de la última OT ACTIVA asociada a una patente.
+
+    Reglas de transición:
+
+    - Pendiente  -> Recibida
+    - Recibida   -> En Proceso, Pausado
+    - En Taller  -> En Proceso, Pausado
+    - En Proceso -> Pausado, Finalizado
+    - Pausado    -> En Taller, En Proceso, No Reparable, Sin Repuestos
+                    (❌ NO puede ir a Finalizado)
+
+    Estados finales: Finalizado, No Reparable, Sin Repuestos
+      - Se setea fecha_salida.
+      - El vehículo queda en estado "Disponible".
+
+    Estados de trabajo en taller: Recibida, En Taller, En Proceso, Pausado
+      - El vehículo queda en estado "En Taller".
+    """
 
     if request.method != "POST":
-        return JsonResponse({"success": False, "message": "Método no permitido"}, status=405)
+        return JsonResponse(
+            {"success": False, "message": "Método no permitido"},
+            status=405,
+        )
 
     patente = normalize(request.POST.get("patente"))
-    nuevo_estado = request.POST.get("estado")
+    nuevo_estado = (request.POST.get("estado") or "").strip()
     comentario = (request.POST.get("comentario") or "").strip()
 
     if not patente or not nuevo_estado:
-        return JsonResponse({"success": False, "message": "Patente y estado son obligatorios"})
+        return JsonResponse(
+            {"success": False, "message": "Patente y estado son obligatorios"}
+        )
 
-    if nuevo_estado == "Finalizado" and comentario == "":
-        return JsonResponse({
-            "success": False,
-            "message": "Debe ingresar un comentario para finalizar."
-        })
+    # =============================
+    #  Reglas para estados finales
+    # =============================
+    ESTADOS_FINALES = ["Finalizado", "No Reparable", "Sin Repuestos"]
+    if nuevo_estado in ESTADOS_FINALES and comentario == "":
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Debe ingresar un comentario para este estado.",
+            }
+        )
 
     veh = Vehiculo.objects.filter(patente=patente).first()
     if not veh:
-        return JsonResponse({"success": False, "message": "Vehículo no existe."})
+        return JsonResponse(
+            {"success": False, "message": "Vehículo no existe."}
+        )
+
+    # Estados considerados "activos" para buscar la OT vigente
+    ESTADOS_ACTIVOS = ["Pendiente", "Recibida", "En Taller", "En Proceso", "Pausado"]
 
     ot = (
         OrdenTrabajo.objects.filter(
             patente_id=patente,
-            estado__in=["Pendiente", "En Taller", "En Proceso", "Pausado"]
+            estado__in=ESTADOS_ACTIVOS,
         )
         .order_by("-fecha_ingreso", "-hora_ingreso")
         .first()
     )
 
     if not ot:
-        return JsonResponse({"success": False, "message": "No hay OT activa para actualizar."})
+        return JsonResponse(
+            {"success": False, "message": "No hay OT activa para actualizar."}
+        )
 
+    # =============================
+    #  Matriz de transiciones
+    # =============================
     TRANSICIONES_VALIDAS = {
-        "Pendiente": ["En Taller"],
+        "Pendiente": ["Recibida"],
+        "Recibida": ["En Proceso", "Pausado"],
         "En Taller": ["En Proceso", "Pausado"],
         "En Proceso": ["Pausado", "Finalizado"],
-        "Pausado": ["En Taller", "En Proceso", "Finalizado"],
+        # 👇 Regla nueva: no puede ir a Finalizado desde Pausado
+        "Pausado": ["En Taller", "En Proceso", "No Reparable", "Sin Repuestos"],
     }
 
     if nuevo_estado not in TRANSICIONES_VALIDAS.get(ot.estado, []):
-        return JsonResponse({
-            "success": False,
-            "message": f"No se puede cambiar de {ot.estado} a {nuevo_estado}"
-        })
+        return JsonResponse(
+            {
+                "success": False,
+                "message": f"No se puede cambiar de {ot.estado} a {nuevo_estado}",
+            }
+        )
 
+    # =============================
+    #  Actualizar OT y Vehículo
+    # =============================
     ot.estado = nuevo_estado
-    ot.descripcion = (ot.descripcion or "") + f"\n[{request.user.username}] {comentario}"
+    if comentario:
+        ot.descripcion = (ot.descripcion or "") + f"\n[{request.user.username}] {comentario}"
 
-    if nuevo_estado == "Finalizado":
+    # Estados finales cierran la OT
+    if nuevo_estado in ESTADOS_FINALES:
         ot.fecha_salida = date.today()
         veh.estado = "Disponible"
+    # Estados de trabajo en taller
+    elif nuevo_estado in ["Recibida", "En Taller", "En Proceso", "Pausado"]:
+        veh.estado = "En Taller"
     else:
+        # Fallback defensivo (por si se agrega algún estado nuevo)
         veh.estado = nuevo_estado
 
     veh.save()
     ot.save()
 
-    return JsonResponse({"success": True, "message": "Estado actualizado correctamente."})
+    return JsonResponse(
+        {"success": True, "message": "Estado actualizado correctamente."}
+    )
