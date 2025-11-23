@@ -27,12 +27,13 @@ urlpatterns = [
     # ======================================================
     path("estado/cambiar/", api_cambiar_estado, name="api_cambiar_estado"),
     # ===========================
-    # APIs antiguas
+    # APIs 
     # ===========================
+    path("supervisor/solicitudes/", api_views.api_supervisor_solicitudes, name="api_supervisor_solicitudes"),
+    path("supervisor/solicitud/aprobar/", api_views.api_supervisor_aprobar_solicitud, name="api_supervisor_aprobar_solicitud"),
     path('ingresos/en-curso/', views.ingresos_en_curso_api, name='ingresos_en_curso_api'),
     path('ingresos/<int:ot_id>/finalizar/', views.ingreso_finalizar_api, name='ingreso_finalizar_api'),
     path('ingresos/<int:ot_id>/cancelar/', views.ingreso_cancelar_api, name='ingreso_cancelar_api'),
-    path("ultimos/", views.api_ultimos_ingresos, name="api_ultimos_ingresos"),
     path('whoami/', views.whoami, name='whoami'),
 
     # Pausas

@@ -1,0 +1,24 @@
+{% for s in solicitudes %}
+<tr>
+    <td>#{{ s.id }}</td>
+    <td>{{ s.vehiculo.patente }}</td>
+    <td>{{ s.vehiculo.marca }}</td>
+    <td>{{ s.vehiculo.modelo }}</td>
+    <td>{{ s.chofer.nombre }}</td>
+    <td>{{ s.fecha_solicitada }}</td>
+    <td>
+        <button class="btn btn-primary btn-sm btn-asignar"
+                data-solicitud-id="{{ s.id }}"
+                data-patente="{{ s.vehiculo.patente }}"
+                data-fecha-solicitada="{{ s.fecha_solicitada|date:'Y-m-d' }}">
+            Programar ingreso
+        </button>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="7" class="text-center text-muted py-3">
+        No hay solicitudes de ingreso pendientes.
+    </td>
+</tr>
+{% endfor %}

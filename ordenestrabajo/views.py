@@ -177,28 +177,3 @@ def ingreso_cancelar_api(request, ot_id):
         ot.patente.save()
 
     return JsonResponse({"success": True})
-
-
-# ==========================================================
-# 🆕 NUEVO: API PARA RECARGAR TABLA SIN REFRESCAR LA PÁGINA
-# ==========================================================
-@login_required
-@require_GET
-def api_ultimos_ingresos(request):
-    """Devuelve SOLO el HTML de la tabla para refrescar en vivo."""
-    user = request.user
-
-    empleado = Empleado.objects.filter(usuario=user.username).first()
-    if not empleado:
-        return JsonResponse({"success": False, "message": "Empleado no encontrado."}, status=400)
-
-    ultimas_ot = OrdenTrabajo.objects.filter(
-        taller_id=empleado.taller_id
-    ).order_by("-fecha_ingreso", "-hora_ingreso")[:10]
-
-    html = render_to_string(
-        "partials/tabla_ultimos_ingresos.html",
-        {"ultimas_ot": ultimas_ot}
-    )
-
-    return JsonResponse({"success": True, "html": html})

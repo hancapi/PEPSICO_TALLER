@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login, logout
 
 from vehiculos.models import Vehiculo
 from autenticacion.models import Empleado
-from ordenestrabajo.models import OrdenTrabajo
+from ordenestrabajo.models import OrdenTrabajo, SolicitudIngresoVehiculo
 from talleres.models import Taller
 
 from autenticacion.roles import (
@@ -174,32 +174,10 @@ def ingreso_vehiculos_page(request):
         "vehiculos": vehiculos,
     })
 
-
-# ==========================================================
-# 📄 FICHA VEHÍCULO — VERSIÓN DUPLICADA (SE DESHABILITA)
-# ==========================================================
-"""
-@login_required(login_url='inicio-sesion')
-@todos_roles
-def ficha_vehiculo_page(request):
-    # ⚠️ Esta versión queda obsoleta
-    # La verdadera está en vehiculos/views.py → api_ficha + ficha_vehiculo
-    patente = (request.GET.get("patente") or "").strip().upper()
-    empleado = (
-        Empleado.objects.select_related('taller')
-        .filter(usuario=request.user.username).first()
-    )
-    return render(request, 'ficha-vehiculo.html', {
-        "menu_active": "ficha_vehiculo",
-        "empleado": empleado,
-        "patente": patente,
-    })
-"""
-# ==========================================================
-
-
 # ==========================================================
 # 🛠️ ASIGNACIÓN DE TALLER (Supervisor)
+#   Ahora muestra SOLICITUDES de ingreso pendientes
+#   El approve/creación de OT se hace vía APIs JS
 # ==========================================================
 @login_required(login_url='inicio-sesion')
 @supervisor_only
@@ -215,80 +193,36 @@ def asignacion_taller_page(request):
         return render(request, "asignacion-taller.html", {
             "menu_active": "asignacion_taller",
             "supervisor": supervisor,
-            "ots": [],
+            "solicitudes": [],
             "mecanicos": [],
             "error": "No se pudo determinar tu taller."
         })
 
+    # Mecánicos del taller del supervisor
     mecanicos = (
         Empleado.objects
         .filter(
             cargo="MECANICO",
-            taller_id=supervisor.taller.taller_id
+            taller_id=supervisor.taller.taller_id,
+            is_active=True,
         )
         .order_by("nombre")
     )
 
-    if request.method == "POST":
-        ot_id = request.POST.get("ot_id")
-        mecanico_rut = request.POST.get("mecanico_rut")
-        comentario = (request.POST.get("comentario") or "").strip()
-
-        if not comentario:
-            return JsonResponse({"success": False, "message": "Debe ingresar comentario."})
-
-        ot = (
-            OrdenTrabajo.objects
-            .filter(
-                ot_id=ot_id,
-                estado="Pendiente",
-                taller_id=supervisor.taller.taller_id
-            )
-            .first()
-        )
-
-        if not ot:
-            return JsonResponse({"success": False, "message": "OT inválida."})
-
-        mecanico = (
-            Empleado.objects
-            .filter(
-                rut=mecanico_rut,
-                cargo="MECANICO",
-                taller_id=supervisor.taller.taller_id
-            )
-            .first()
-        )
-
-        if not mecanico:
-            return JsonResponse({"success": False, "message": "Mecánico inválido."})
-
-        ot.estado = "En Taller"
-        ot.rut = mecanico
-        ot.descripcion = (ot.descripcion or "") + f"\n[Supervisor {supervisor.usuario}] {comentario}"
-        ot.save()
-
-        vehiculo = Vehiculo.objects.filter(patente=ot.patente_id).first()
-        if vehiculo:
-            vehiculo.estado = "En Taller"
-            vehiculo.ubicacion = supervisor.taller.nombre
-            vehiculo.save()
-
-        return JsonResponse({"success": True})
-
-    ots_pendientes = (
-        OrdenTrabajo.objects
+    # 🔹 Solicitudes de ingreso PENDIENTES de este taller
+    solicitudes = (
+        SolicitudIngresoVehiculo.objects
+        .select_related("vehiculo", "chofer", "taller")
         .filter(
-            estado="Pendiente",
-            taller_id=supervisor.taller.taller_id
+            taller_id=supervisor.taller.taller_id,
+            estado="PENDIENTE",
         )
-        .select_related("patente")
-        .order_by("-fecha_ingreso", "-hora_ingreso")
+        .order_by("fecha_solicitada", "creado_en")
     )
 
     return render(request, "asignacion-taller.html", {
         "menu_active": "asignacion_taller",
         "supervisor": supervisor,
-        "ots": ots_pendientes,
+        "solicitudes": solicitudes,
         "mecanicos": mecanicos,
     })
