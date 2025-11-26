@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}
+  {% if is_edit %}Editar Recinto{% else %}Nuevo Recinto{% endif %} | Taller PepsiCo Chile
+{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">🏭</div>
+      <div class="welcome-text">
+        <h1>{% if is_edit %}Editar Recinto{% else %}Nuevo Recinto{% endif %}</h1>
+        <p>Completa los datos del recinto.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+
+      {% if form.errors %}
+        <div class="alert alert-danger">
+          <strong>Revisa los errores:</strong>
+          <ul class="mb-0 mt-2">
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+          {% for field in form %}
+            <div class="col-md-4">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <small class="text-muted d-block">{{ field.help_text }}</small>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="mt-4 d-flex justify-content-between">
+          <a href="{% url 'autenticacion:admin-web-recintos' %}"
+             class="btn btn-outline-secondary">
+            ← Volver al listado
+          </a>
+          <button type="submit" class="btn btn-primary">
+            {% if is_edit %}Guardar cambios{% else %}Crear recinto{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

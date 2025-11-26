@@ -1,0 +1,82 @@
+{# templates/admin_panel.html #}
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}Administración del Sitio | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <!-- ENCABEZADO -->
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">⚙️</div>
+      <div class="welcome-text">
+        <h1>Administración del Sitio</h1>
+        <p>Panel de gestión funcional — Solo Administrador Web</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCIONES PRINCIPALES -->
+  <div class="row g-3">
+
+    <!-- Gestión de Vehículos -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="fw-bold mb-2">🚗 Gestión de Vehículos</h5>
+          <p class="text-muted mb-3">
+            Alta, baja y modificación de vehículos de la flota.
+          </p>
+          <div class="mt-auto">
+            <a href="{% url 'autenticacion:admin-web-vehiculos' %}"
+               class="btn btn-primary w-100">
+              Ir a Vehículos
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gestión de Empleados -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="fw-bold mb-2">🧑‍💼 Gestión de Empleados</h5>
+          <p class="text-muted mb-3">
+            Administración de perfiles, cargos y disponibilidad.
+          </p>
+          <div class="mt-auto">
+            <a href="{% url 'autenticacion:admin-web-empleados' %}"
+               class="btn btn-primary w-100">
+              Ir a Empleados
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gestión de Recintos / Talleres -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="fw-bold mb-2">🏭 Recintos y Talleres</h5>
+          <p class="text-muted mb-3">
+            Configuración de recintos, andenes y parámetros básicos.
+          </p>
+          <div class="mt-auto">
+            <a href="{% url 'autenticacion:admin-web-recintos' %}"
+               class="btn btn-primary w-100">
+              Ir a Recintos y Talleres
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

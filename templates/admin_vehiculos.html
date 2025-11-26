@@ -1,0 +1,157 @@
+{# templates/admin_vehiculos.html #}
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}Gestión de Vehículos | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <!-- ENCABEZADO -->
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">🚗</div>
+      <div class="welcome-text">
+        <h1>Gestión de Vehículos</h1>
+        <p>Alta, baja y modificación de vehículos de la flota.</p>
+      </div>
+    </div>
+
+    <div class="mt-3 text-end">
+      <!-- Botón NUEVO VEHÍCULO -->
+      <a href="{% url 'autenticacion:admin-web-vehiculo-nuevo' %}"
+         class="btn btn-primary">
+        + Nuevo Vehículo
+      </a>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="fw-bold mb-3">🎛️ Filtros</h5>
+
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label" for="fltPatente">Patente</label>
+          <input type="text"
+                 id="fltPatente"
+                 name="patente"
+                 class="form-control"
+                 value="{{ f_patente }}"
+                 placeholder="Ej: KGJV93">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label" for="fltMarca">Marca</label>
+          <input type="text"
+                 id="fltMarca"
+                 name="marca"
+                 class="form-control"
+                 value="{{ f_marca }}"
+                 placeholder="Ej: Chevrolet">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label" for="fltModelo">Modelo</label>
+          <input type="text"
+                 id="fltModelo"
+                 name="modelo"
+                 class="form-control"
+                 value="{{ f_modelo }}"
+                 placeholder="Ej: Silverado">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label" for="fltEstado">Estado</label>
+          <select id="fltEstado"
+                  name="estado"
+                  class="form-select">
+            <option value="">Todos</option>
+            {% for est in estados %}
+              <option value="{{ est }}" {% if f_estado == est %}selected{% endif %}>
+                {{ est }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 mt-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            🔎 Aplicar filtros
+          </button>
+          <a href="{% url 'autenticacion:admin-web-vehiculos' %}"
+             class="btn btn-outline-secondary">
+            🧹 Limpiar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Vehículos</h5>
+        <span class="text-muted small">
+          {{ vehiculos|length }} registro(s)
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Patente</th>
+              <th>Marca</th>
+              <th>Modelo</th>
+              <th>Año</th>
+              <th>Tipo</th>
+              <th>Ubicación</th>
+              <th>Estado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if vehiculos %}
+              {% for v in vehiculos %}
+                <tr>
+                  <td>{{ v.patente }}</td>
+                  <td>{{ v.marca }}</td>
+                  <td>{{ v.modelo }}</td>
+                  <td>{{ v.anio }}</td>
+                  <td>{{ v.tipo }}</td>
+                  <td>{{ v.ubicacion }}</td>
+                  <td>{{ v.estado }}</td>
+                  <td class="text-end">
+                    <!-- Editar -->
+                    <a href="{% url 'autenticacion:admin-web-vehiculo-editar' v.patente %}"
+                       class="btn btn-sm btn-outline-secondary me-1">
+                      Editar
+                    </a>
+
+                    <!-- Eliminar -->
+                    <a href="{% url 'autenticacion:admin-web-vehiculo-eliminar' v.patente %}"
+                       class="btn btn-sm btn-outline-danger">
+                      Eliminar
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="8" class="text-muted text-center">
+                  No se encontraron vehículos con los filtros actuales.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

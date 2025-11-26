@@ -13,14 +13,20 @@ def has_role(user, roles):
 
 
 # ---- Roles de acuerdo a Casos de Uso ----
-chofer_only    = user_passes_test(lambda u: has_role(u, ['CHOFER']))
-mecanico_only  = user_passes_test(lambda u: has_role(u, ['MECANICO']))
-supervisor_only = user_passes_test(lambda u: has_role(u, ['SUPERVISOR']))
-guardia_only   = user_passes_test(lambda u: has_role(u, ['GUARDIA']))  # 👈 NUEVO
+chofer_only      = user_passes_test(lambda u: has_role(u, ['CHOFER']))
+mecanico_only    = user_passes_test(lambda u: has_role(u, ['MECANICO']))
+supervisor_only  = user_passes_test(lambda u: has_role(u, ['SUPERVISOR']))
+guardia_only     = user_passes_test(lambda u: has_role(u, ['GUARDIA']))
+
+# 👇 NUEVO: sólo Administrador Web
+admin_web_only   = user_passes_test(lambda u: has_role(u, ['ADMIN_WEB']))
 
 chofer_or_supervisor   = user_passes_test(lambda u: has_role(u, ['CHOFER', 'SUPERVISOR']))
 mecanico_or_supervisor = user_passes_test(lambda u: has_role(u, ['MECANICO', 'SUPERVISOR']))
 
 todos_roles = user_passes_test(
-    lambda u: has_role(u, ['CHOFER', 'MECANICO', 'SUPERVISOR', 'ADMINISTRATIVO', 'GUARDIA'])  # 👈 incluye GUARDIA
+    lambda u: has_role(
+        u,
+        ['CHOFER', 'MECANICO', 'SUPERVISOR', 'ADMINISTRATIVO', 'GUARDIA', 'ADMIN_WEB']
+    )
 )

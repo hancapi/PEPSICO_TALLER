@@ -3,10 +3,12 @@
 
 <div class="sidebar d-flex flex-column p-0" id="sidebar">
   <h4 class="px-3 py-3 border-bottom mb-0">🚗 Taller PepsiCo Chile</h4>
+
   <a href="{% url 'inicio' %}"
      class="nav-link {% if menu_active == 'inicio' %}active{% endif %}">
     🔒 Inicio
   </a>
+
   {% if user|has_role:"SUPERVISOR" %}
     <a href="{% url 'reportes-dashboard' %}"
        class="nav-link {% if menu_active == 'reportes' %}active{% endif %}">
@@ -16,6 +18,14 @@
     <a href="{% url 'reportes:reportes_ot' %}"
        class="nav-link {% if menu_active == 'reportes_ot' %}active{% endif %}">
       📋 Reporte de OTs
+    </a>
+  {% endif %}
+
+  <!-- Bloque SOLO ADMIN_WEB -->
+  {% if user|has_role:"ADMIN_WEB" %}
+    <a href="{% url 'autenticacion:admin-web' %}"
+       class="nav-link {% if menu_active == 'admin-web' %}active{% endif %}">
+      ⚙️ Administración Web
     </a>
   {% endif %}
 </div>

@@ -1,0 +1,56 @@
+{# templates/admin_vehiculo_confirm_delete.html #}
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}Eliminar vehículo | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">🗑️</div>
+      <div class="welcome-text">
+        <h1>Eliminar vehículo</h1>
+        <p>
+          Estás a punto de eliminar el vehículo
+          <strong>{{ vehiculo.patente }}</strong>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-danger">
+    <div class="card-body">
+      <h5 class="fw-bold text-danger mb-3">¿Confirmas la eliminación?</h5>
+
+      <p class="mb-3">
+        Esta acción <strong>no se puede deshacer</strong>.
+        Se eliminará el registro del vehículo de la flota.
+      </p>
+
+      <ul class="mb-4">
+        <li><strong>Patente:</strong> {{ vehiculo.patente }}</li>
+        <li><strong>Marca / Modelo:</strong> {{ vehiculo.marca }} {{ vehiculo.modelo }}</li>
+        <li><strong>Año:</strong> {{ vehiculo.anio }}</li>
+        <li><strong>Tipo:</strong> {{ vehiculo.tipo }}</li>
+        <li><strong>Ubicación:</strong> {{ vehiculo.ubicacion }}</li>
+        <li><strong>Estado:</strong> {{ vehiculo.estado }}</li>
+      </ul>
+
+      <form method="post" class="d-flex gap-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">
+          Sí, eliminar vehículo
+        </button>
+        <a href="{% url 'autenticacion:admin-web-vehiculos' %}"
+           class="btn btn-outline-secondary">
+          Cancelar
+        </a>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

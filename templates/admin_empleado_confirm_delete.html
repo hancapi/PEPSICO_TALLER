@@ -1,0 +1,46 @@
+{# templates/admin_empleado_confirm_delete.html #}
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}Eliminar Empleado | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <div class="welcome-card mb-4 bg-danger text-white">
+    <div class="welcome-content">
+      <div class="welcome-avatar">⚠️</div>
+      <div class="welcome-text">
+        <h1>Confirmar eliminación</h1>
+        <p>Esta acción no se puede deshacer.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <p>
+        ¿Estás seguro que deseas eliminar al empleado
+        <strong>{{ empleado.nombre }}</strong> (RUT: {{ empleado.rut }})?
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'autenticacion:admin-web-empleados' %}"
+             class="btn btn-outline-secondary">
+            ⬅ Cancelar
+          </a>
+
+          <button type="submit" class="btn btn-danger">
+            Sí, eliminar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

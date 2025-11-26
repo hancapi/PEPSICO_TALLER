@@ -1,7 +1,7 @@
 # autenticacion/views_pages.py
 
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse
@@ -10,6 +10,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.db.models import Q
 
 from vehiculos.models import Vehiculo
+from vehiculos.forms import VehiculoForm  # ModelForm oficial de Vehiculo
+from autenticacion.forms import EmpleadoForm
 from autenticacion.models import Empleado
 from ordenestrabajo.models import (
     OrdenTrabajo,
@@ -17,7 +19,8 @@ from ordenestrabajo.models import (
     DesignacionVehicular,
     ControlAcceso,
 )
-from talleres.models import Taller
+from talleres.models import Taller, Recinto          # 👈 agrega Recinto aquí
+from talleres.forms import RecintoForm, TallerForm  # 👈 NUEVO
 
 from autenticacion.roles import (
     chofer_only,
@@ -27,10 +30,10 @@ from autenticacion.roles import (
     supervisor_only,
     todos_roles,
     guardia_only,
-    # guardia_or_supervisor  # lo puedes usar después si quieres
+    admin_web_only,
 )
 
-# ✅ Importamos la vista canónica del guardia
+# Vista canónica del guardia
 from ordenestrabajo.views_control_acceso import control_acceso_guardia
 
 
@@ -69,7 +72,7 @@ def logout_web(request):
 # ==========================================================
 # 🏠 DASHBOARD PRINCIPAL
 # ==========================================================
-@login_required(login_url='inicio-sesion')
+@login_required(login_url="inicio-sesion")
 def inicio_page(request):
     user = request.user
 
@@ -103,9 +106,8 @@ def inicio_page(request):
 
 # ==========================================================
 # 🚗 SOLICITUD DE INGRESO DE VEHÍCULOS
-#    (Chofer / Supervisor -> crea SolicitudIngresoVehiculo PENDIENTE)
 # ==========================================================
-@login_required(login_url='inicio-sesion')
+@login_required(login_url="inicio-sesion")
 @chofer_or_supervisor
 def ingreso_vehiculos_page(request):
 
@@ -190,16 +192,13 @@ def ingreso_vehiculos_page(request):
         ahora = timezone.now()
 
         # ✅ NUEVO FLUJO:
-        # Creamos una SolicitudIngresoVehiculo en estado PENDIENTE
-        solicitud = SolicitudIngresoVehiculo.objects.create(
+        SolicitudIngresoVehiculo.objects.create(
             vehiculo=vehiculo,
-            chofer=empleado,          # quien está solicitando
+            chofer=empleado,
             taller=taller,
             fecha_solicitada=ahora.date(),
             estado="PENDIENTE",
-            # ⚠️ Si tu modelo tiene campo 'descripcion' / 'motivo',
-            #     puedes mapear 'descripcion' del formulario aquí.
-            # p.ej: descripcion=descripcion,
+            # descripcion=descripcion,  # si tu modelo lo tiene
         )
 
         messages.success(
@@ -221,7 +220,7 @@ def ingreso_vehiculos_page(request):
 # ==========================================================
 # 🛠️ ASIGNACIÓN DE TALLER (Supervisor)
 # ==========================================================
-@login_required(login_url='inicio-sesion')
+@login_required(login_url="inicio-sesion")
 @supervisor_only
 def asignacion_taller_page(request):
     supervisor = (
@@ -269,15 +268,400 @@ def asignacion_taller_page(request):
 
 
 # ==========================================================
-# 🚧 CONTROL DE ACCESO (GUARDIA DE RECINTO)
-#    Wrapper hacia la vista canónica en ordenestrabajo
+# 🚧 CONTROL DE ACCESO (GUARDIA)
 # ==========================================================
-@login_required(login_url='inicio-sesion')
+@login_required(login_url="inicio-sesion")
 @guardia_only
 def control_acceso_page(request):
-    """
-    Wrapper para reutilizar la lógica centralizada de control de acceso
-    definida en ordenestrabajo.views_control_acceso.control_acceso_guardia,
-    manteniendo el nombre de vista y las restricciones de rol (guardia_only).
-    """
     return control_acceso_guardia(request)
+
+
+# ==========================================================
+# 🧩 ADMIN WEB — Panel principal
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_panel_page(request):
+    return render(request, "admin_panel.html", {
+        "menu_active": "admin-web"
+    })
+
+
+# ==========================================================
+# 🧩 ADMIN WEB — VEHÍCULOS (Listado)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_vehiculos_page(request):
+    q_patente = (request.GET.get("patente") or "").strip().upper()
+    q_marca   = (request.GET.get("marca") or "").strip()
+    q_modelo  = (request.GET.get("modelo") or "").strip()
+    q_estado  = (request.GET.get("estado") or "").strip()
+
+    qs = Vehiculo.objects.all().order_by("patente")
+
+    if q_patente:
+        qs = qs.filter(patente__icontains=q_patente)
+    if q_marca:
+        qs = qs.filter(marca__icontains=q_marca)
+    if q_modelo:
+        qs = qs.filter(modelo__icontains=q_modelo)
+    if q_estado:
+        qs = qs.filter(estado=q_estado)
+
+    estados = (
+        Vehiculo.objects.exclude(estado__isnull=True)
+        .values_list("estado", flat=True)
+        .distinct()
+        .order_by("estado")
+    )
+
+    context = {
+        "menu_active": "admin-web",
+        "vehiculos": qs,
+        "f_patente": q_patente,
+        "f_marca": q_marca,
+        "f_modelo": q_modelo,
+        "f_estado": q_estado,
+        "estados": estados,
+    }
+    return render(request, "admin_vehiculos.html", context)
+
+
+# ==========================================================
+# 🧩 ADMIN WEB — VEHÍCULOS (Nuevo)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_vehiculo_create(request):
+    if request.method == "POST":
+        form = VehiculoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Vehículo creado correctamente.")
+            return redirect("autenticacion:admin-web-vehiculos")
+    else:
+        form = VehiculoForm()
+
+    return render(request, "admin_vehiculo_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": False,
+    })
+
+
+# ==========================================================
+# 🧩 ADMIN WEB — VEHÍCULOS (Editar)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_vehiculo_edit(request, patente):
+    vehiculo = get_object_or_404(Vehiculo, patente=patente)
+
+    if request.method == "POST":
+        form = VehiculoForm(request.POST, instance=vehiculo)
+        form.fields["patente"].disabled = True
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Vehículo {vehiculo.patente} actualizado correctamente."
+            )
+            return redirect("autenticacion:admin-web-vehiculos")
+    else:
+        form = VehiculoForm(instance=vehiculo)
+        form.fields["patente"].disabled = True
+
+    return render(request, "admin_vehiculo_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": True,
+        "vehiculo": vehiculo,
+    })
+
+
+# ==========================================================
+# 🧩 ADMIN WEB — VEHÍCULOS (Eliminar)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_vehiculo_delete(request, patente):
+    vehiculo = get_object_or_404(Vehiculo, patente=patente)
+
+    if request.method == "POST":
+        patente_txt = vehiculo.patente
+        vehiculo.delete()
+        messages.success(
+            request,
+            f"Vehículo {patente_txt} eliminado correctamente."
+        )
+        return redirect("autenticacion:admin-web-vehiculos")
+
+    return render(request, "admin_vehiculo_confirm_delete.html", {
+        "menu_active": "admin-web",
+        "vehiculo": vehiculo,
+    })
+
+
+# ==========================================================
+# ⚙️ ADMIN WEB – EMPLEADOS (Listado)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_empleados_page(request):
+    q_rut    = (request.GET.get("rut") or "").strip()
+    q_nombre = (request.GET.get("nombre") or "").strip()
+    q_cargo  = (request.GET.get("cargo") or "").strip()
+    q_region = (request.GET.get("region") or "").strip()
+
+    qs = (
+        Empleado.objects
+        .select_related("recinto")
+        .all()
+        .order_by("nombre")
+    )
+
+    if q_rut:
+        qs = qs.filter(rut__icontains=q_rut)
+    if q_nombre:
+        qs = qs.filter(nombre__icontains=q_nombre)
+    if q_cargo:
+        qs = qs.filter(cargo=q_cargo)
+    if q_region:
+        qs = qs.filter(region=q_region)
+
+    cargos = [c[0] for c in Empleado.CARGOS]
+    regiones = [r[0] for r in Empleado.REGIONES_CHILE]
+
+    return render(request, "admin_empleados.html", {
+        "menu_active": "admin-web",
+        "empleados": qs,
+        "f_rut": q_rut,
+        "f_nombre": q_nombre,
+        "f_cargo": q_cargo,
+        "f_region": q_region,
+        "cargos": cargos,
+        "regiones": regiones,
+    })
+
+
+# ==========================================================
+# ⚙️ ADMIN WEB – EMPLEADOS (Nuevo)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_empleado_create(request):
+    if request.method == "POST":
+        form = EmpleadoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Empleado creado correctamente.")
+            return redirect("autenticacion:admin-web-empleados")
+    else:
+        form = EmpleadoForm()
+
+    return render(request, "admin_empleado_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": False,
+    })
+
+
+# ==========================================================
+# ⚙️ ADMIN WEB – EMPLEADOS (Editar)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_empleado_edit(request, rut):
+    empleado = get_object_or_404(Empleado, rut=rut)
+
+    if request.method == "POST":
+        form = EmpleadoForm(request.POST, instance=empleado)
+        # no permitimos cambiar rut desde la vista
+        form.fields["rut"].disabled = True
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Empleado {empleado.nombre} actualizado correctamente."
+            )
+            return redirect("autenticacion:admin-web-empleados")
+    else:
+        form = EmpleadoForm(instance=empleado)
+        form.fields["rut"].disabled = True
+
+    return render(request, "admin_empleado_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": True,
+        "empleado": empleado,
+    })
+
+
+# ==========================================================
+# ⚙️ ADMIN WEB – EMPLEADOS (Eliminar)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_empleado_delete(request, rut):
+    empleado = get_object_or_404(Empleado, rut=rut)
+
+    if request.method == "POST":
+        nombre = empleado.nombre
+        empleado.delete()
+        messages.success(
+            request,
+            f"Empleado {nombre} eliminado correctamente."
+        )
+        return redirect("autenticacion:admin-web-empleados")
+
+    return render(request, "admin_empleado_confirm_delete.html", {
+        "menu_active": "admin-web",
+        "empleado": empleado,
+    })
+
+# ==========================================================
+# ⚙️ ADMIN WEB – Recintos (CRUD)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_recintos_page(request):
+    recintos = Recinto.objects.all().order_by("nombre") if hasattr(Recinto, "nombre") else Recinto.objects.all().order_by("pk")
+    return render(request, "admin_recintos.html", {
+        "menu_active": "admin-web",
+        "recintos": recintos,
+    })
+
+
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_recinto_create(request):
+    if request.method == "POST":
+        form = RecintoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Recinto creado correctamente.")
+            return redirect("autenticacion:admin-web-recintos")
+    else:
+        form = RecintoForm()
+
+    return render(request, "admin_recinto_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": False,
+    })
+
+
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_recinto_edit(request, pk):
+    recinto = get_object_or_404(Recinto, pk=pk)
+
+    if request.method == "POST":
+        form = RecintoForm(request.POST, instance=recinto)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Recinto actualizado correctamente.")
+            return redirect("autenticacion:admin-web-recintos")
+    else:
+        form = RecintoForm(instance=recinto)
+
+    return render(request, "admin_recinto_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": True,
+        "recinto": recinto,
+    })
+
+
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_recinto_delete(request, pk):
+    recinto = get_object_or_404(Recinto, pk=pk)
+
+    if request.method == "POST":
+        nombre = str(recinto)
+        recinto.delete()
+        messages.success(request, f"Recinto {nombre} eliminado correctamente.")
+        return redirect("autenticacion:admin-web-recintos")
+
+    return render(request, "admin_recinto_confirm_delete.html", {
+        "menu_active": "admin-web",
+        "recinto": recinto,
+    })
+
+
+# ==========================================================
+# ⚙️ ADMIN WEB – Talleres (CRUD)
+# ==========================================================
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_talleres_page(request):
+    talleres = (
+        Taller.objects.select_related("recinto")
+        .all()
+        .order_by("recinto__nombre", "pk")
+    )
+    return render(request, "admin_talleres.html", {
+        "menu_active": "admin-web",
+        "talleres": talleres,
+    })
+
+
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_taller_create(request):
+    if request.method == "POST":
+        form = TallerForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Taller creado correctamente.")
+            return redirect("autenticacion:admin-web-talleres")
+    else:
+        form = TallerForm()
+
+    return render(request, "admin_taller_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": False,
+    })
+
+
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_taller_edit(request, pk):
+    taller = get_object_or_404(Taller, pk=pk)
+
+    if request.method == "POST":
+        form = TallerForm(request.POST, instance=taller)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Taller actualizado correctamente.")
+            return redirect("autenticacion:admin-web-talleres")
+    else:
+        form = TallerForm(instance=taller)
+
+    return render(request, "admin_taller_form.html", {
+        "menu_active": "admin-web",
+        "form": form,
+        "is_edit": True,
+        "taller": taller,
+    })
+
+
+@login_required(login_url="inicio-sesion")
+@admin_web_only
+def admin_web_taller_delete(request, pk):
+    taller = get_object_or_404(Taller, pk=pk)
+
+    if request.method == "POST":
+        nombre = str(taller)
+        taller.delete()
+        messages.success(request, f"Taller {nombre} eliminado correctamente.")
+        return redirect("autenticacion:admin-web-talleres")
+
+    return render(request, "admin_taller_confirm_delete.html", {
+        "menu_active": "admin-web",
+        "taller": taller,
+    })

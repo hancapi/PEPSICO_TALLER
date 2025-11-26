@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}Talleres | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">🛠️</div>
+      <div class="welcome-text">
+        <h1>Talleres</h1>
+        <p>Administración de talleres asociados a cada recinto.</p>
+      </div>
+    </div>
+
+    <div class="mt-3 text-end">
+      <a href="{% url 'autenticacion:admin-web-taller-nuevo' %}"
+         class="btn btn-primary">
+        + Nuevo Taller
+      </a>
+      <a href="{% url 'autenticacion:admin-web-recintos' %}"
+         class="btn btn-outline-secondary ms-2">
+        Ver Recintos
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Talleres</h5>
+        <span class="text-muted small">{{ talleres|length }} registro(s)</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Recinto</th>
+              <th>N° Andén</th>
+              <th>Encargado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if talleres %}
+              {% for t in talleres %}
+                <tr>
+                  <td>{{ t.pk }}</td>
+                  <td>{{ t.recinto }}</td>
+                  <td>{{ t.nro_anden }}</td>
+                  <td>{{ t.encargado_taller }}</td>
+                  <td class="text-end">
+                    <a href="{% url 'autenticacion:admin-web-taller-editar' t.pk %}"
+                       class="btn btn-sm btn-outline-secondary me-1">
+                      Editar
+                    </a>
+                    <a href="{% url 'autenticacion:admin-web-taller-eliminar' t.pk %}"
+                       class="btn btn-sm btn-outline-danger">
+                      Eliminar
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted">
+                  No hay talleres registrados.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

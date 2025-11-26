@@ -17,7 +17,9 @@ class Empleado(models.Model):
         ('SUPERVISOR', 'Supervisor'),
         ('MECANICO', 'Mecánico'),
         ('ADMINISTRATIVO', 'Administrativo'),
-        ('GUARDIA', 'Guardia'),      
+        ('GUARDIA', 'Guardia'),
+        # 👇 NUEVO rol para panel admin de la web
+        ('ADMIN_WEB', 'Administrador Web'),
     ]
 
     # ---- Choices: Regiones de Chile ----
@@ -134,6 +136,6 @@ def sync_user_group(sender, instance: Empleado, **kwargs):
     user.groups.clear()
     user.groups.add(group)
 
-    # si es supervisor, lo marcamos como staff
-    user.is_staff = (group_name == 'SUPERVISOR')
+    # si es supervisor o admin_web, lo marcamos como staff
+    user.is_staff = group_name in ('SUPERVISOR', 'ADMIN_WEB')
     user.save()

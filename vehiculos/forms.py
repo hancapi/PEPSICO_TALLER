@@ -9,10 +9,13 @@ class VehiculoForm(forms.ModelForm):
 
         widgets = {
             'patente': forms.TextInput(attrs={'class': 'form-control'}),
-            'marca': forms.TextInput(attrs={'class': 'form-control'}),
-            'modelo': forms.TextInput(attrs={'class': 'form-control'}),
-            'anio': forms.NumberInput(attrs={'class': 'form-control'}),
-            'tipo': forms.TextInput(attrs={'class': 'form-control'}),
-            'estado': forms.TextInput(attrs={'class': 'form-control'}),
-            'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),  # CharField
+            'marca':   forms.TextInput(attrs={'class': 'form-control'}),
+            'modelo':  forms.TextInput(attrs={'class': 'form-control'}),
+            'anio':    forms.NumberInput(attrs={'class': 'form-control'}),
+
+            # 👇 Si en el modelo estos campos tienen `choices`, Django usará <select>
+            'tipo':    forms.Select(attrs={'class': 'form-select'}),
+            'estado':  forms.Select(attrs={'class': 'form-select'}),
+
+            'ubicacion': forms.Select(attrs={'class': 'form-control'}),
         }

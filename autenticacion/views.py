@@ -177,3 +177,19 @@ def dashboard_stats_view(request):
     except Exception as e:
         logger.error(f"Error dashboard_stats_view: {e}")
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+# autenticacion/views.py 
+from django.contrib.auth.decorators import login_required
+from autenticacion.roles import admin_web_only
+
+
+@login_required(login_url='/inicio-sesion/')
+@admin_web_only
+def panel_admin_web(request):
+    """
+    Panel de administración funcional para el cliente.
+    Solo accesible para empleados con cargo ADMIN_WEB.
+    """
+    return render(request, "admin_panel.html", {
+        "menu_active": "admin_web"
+    })

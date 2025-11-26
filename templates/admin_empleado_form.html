@@ -1,0 +1,106 @@
+{# templates/admin_empleado_form.html #}
+{% extends "base.html" %}
+{% load static %}
+{% load roles %}
+
+{% block title %}
+  {% if is_edit %}Editar Empleado{% else %}Nuevo Empleado{% endif %} | Taller PepsiCo Chile
+{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+  <!-- ENCABEZADO -->
+  <div class="welcome-card mb-4">
+    <div class="welcome-content">
+      <div class="welcome-avatar">🧑‍💼</div>
+      <div class="welcome-text">
+        <h1>{% if is_edit %}Editar Empleado{% else %}Nuevo Empleado{% endif %}</h1>
+        <p>Completa los datos del empleado.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+
+      {# Mostrar errores de validación si los hay #}
+      {% if form.errors %}
+        <div class="alert alert-danger">
+          <strong>Revisa los siguientes errores:</strong>
+          <ul class="mb-0 mt-2">
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="row g-3">
+          <!-- Fila 1: RUT, Usuario, Nombre -->
+          <div class="col-md-4">
+            <label class="form-label" for="{{ form.rut.id_for_label }}">RUT</label>
+            {{ form.rut }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="{{ form.usuario.id_for_label }}">Usuario</label>
+            {{ form.usuario }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="{{ form.nombre.id_for_label }}">Nombre</label>
+            {{ form.nombre }}
+          </div>
+
+          <!-- Fila 2: Cargo, Región, Horario -->
+          <div class="col-md-3">
+            <label class="form-label" for="{{ form.cargo.id_for_label }}">Cargo</label>
+            {{ form.cargo }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="{{ form.region.id_for_label }}">Región</label>
+            {{ form.region }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="{{ form.horario.id_for_label }}">Horario</label>
+            {{ form.horario }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="{{ form.recinto.id_for_label }}">Recinto</label>
+            {{ form.recinto }}
+          </div>
+
+          <!-- Disponible -->
+          <div class="col-12 mt-2">
+            <div class="form-check">
+              {{ form.disponibilidad }}
+              <label class="form-check-label" for="{{ form.disponibilidad.id_for_label }}">
+                Disponible
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-between">
+          <a href="{% url 'autenticacion:admin-web-empleados' %}"
+             class="btn btn-outline-secondary">
+            ← Volver al listado
+          </a>
+
+          <button type="submit" class="btn btn-primary">
+            {% if is_edit %}Guardar cambios{% else %}Crear empleado{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
