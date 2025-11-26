@@ -8,6 +8,8 @@ from autenticacion import views_pages                   # login, inicio, ingreso
 from talleres.views import registro_taller_page         # registro taller REAL
 from vehiculos.views import ficha_vehiculo              # ficha vehículo REAL
 from reportes.views import reportes_page                # reportes REAL
+from ordenestrabajo.views_control_acceso import control_acceso_guardia
+from autenticacion.views_pages import control_acceso_page
 
 from django.conf import settings
 from django.conf.urls.static import static
@@ -60,6 +62,7 @@ urlpatterns = [
     path('api/ordenestrabajo/', include('ordenestrabajo.urls', namespace='ordenestrabajo')),
     path('api/documentos/', include('documentos.urls', namespace='documentos')),
     path('api/taller/', include('talleres.urls_api')),
+    
     # ==========================================================
     # ASIGNACIÓN TALLER — (OFICIAL)
     # ==========================================================
@@ -69,6 +72,9 @@ urlpatterns = [
     # AUTENTICACIÓN
     # ==========================================================
     path('autenticacion/', include('autenticacion.urls')),
+    path("control-acceso/", control_acceso_guardia, name="control-acceso"),
+    path("control-acceso/", control_acceso_page, name="control-acceso"),
+
 ]
 
 

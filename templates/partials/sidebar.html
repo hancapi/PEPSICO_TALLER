@@ -1,50 +1,21 @@
 {% load static %}
 {% load roles %}
 
-<div class="sidebar d-flex flex-column p-0">
+<div class="sidebar d-flex flex-column p-0" id="sidebar">
   <h4 class="px-3 py-3 border-bottom mb-0">🚗 Taller PepsiCo Chile</h4>
-
-  <!-- ============================== -->
-  <!-- TODOS LOS USUARIOS -->
-  <!-- ============================== -->
-  <a href="{% url 'inicio' %}" 
+  <a href="{% url 'inicio' %}"
      class="nav-link {% if menu_active == 'inicio' %}active{% endif %}">
     🔒 Inicio
   </a>
+  {% if user|has_role:"SUPERVISOR" %}
+    <a href="{% url 'reportes-dashboard' %}"
+       class="nav-link {% if menu_active == 'reportes' %}active{% endif %}">
+      📊 Panel de Reportes
+    </a>
 
-  <a href="{% url 'chat:chat' %}" 
-     class="nav-link {% if menu_active == 'chat' %}active{% endif %}">
-    💬 Chat
-  </a>
-
-  <!-- ============================== -->
-  <!-- INGRESO VEHÍCULOS – CHOFER / SUPERVISOR -->
-  <!-- ============================== -->
-  {% if user|is_chofer or user|is_supervisor %}
-  <a href="{% url 'ingreso-vehiculos' %}" 
-     class="nav-link {% if menu_active == 'ingreso_vehiculos' %}active{% endif %}">
-    📥 Ingreso Vehículos
-  </a>
+    <a href="{% url 'reportes:reportes_ot' %}"
+       class="nav-link {% if menu_active == 'reportes_ot' %}active{% endif %}">
+      📋 Reporte de OTs
+    </a>
   {% endif %}
-
-  <!-- ============================== -->
-  <!-- REGISTRO TALLER – MECÁNICO / SUPERVISOR -->
-  <!-- ============================== -->
-  {% if user|is_mecanico or user|is_supervisor %}
-  <a href="{% url 'registro-taller' %}" 
-     class="nav-link {% if menu_active == 'registro_taller' %}active{% endif %}">
-    🛠️ Registro Taller
-  </a>
-  {% endif %}
-
-  <!-- ============================== -->
-  <!-- REPORTES – SOLO SUPERVISOR -->
-  <!-- ============================== -->
-  {% if user|is_supervisor %}
-  <a href="{% url 'reportes-dashboard' %}" 
-     class="nav-link {% if menu_active == 'reportes' %}active{% endif %}">
-    📊 Reportes
-  </a>
-  {% endif %}
-
 </div>

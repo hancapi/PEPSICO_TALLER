@@ -9,18 +9,17 @@
 <div class="page-container fade-in">
 
     <!-- ===========================================
-            ENCABEZADO
+         ENCABEZADO
     ============================================ -->
     <div class="section-header mb-4">
         <h2 class="fw-bold">🧰 Solicitudes de Vehículos</h2>
-        <p class="text-muted">
+        <p class="text-muted mb-0">
             Revisar solicitudes de ingreso, aprobar y programar fecha/hora de ingreso al taller.
         </p>
     </div>
 
-
     <!-- ===========================================
-            TABLA SOLICITUDES PENDIENTES
+         TABLA SOLICITUDES PENDIENTES
     ============================================ -->
     <div class="card mb-4">
         <div class="card-body">
@@ -50,12 +49,12 @@
                             <td>{{ s.vehiculo.modelo }}</td>
                             <td>{{ s.chofer.nombre }}</td>
                             <td>{{ s.fecha_solicitada }}</td>
-
                             <td>
-                                <button class="btn btn-primary btn-sm btn-asignar"
-                                        data-solicitud-id="{{ s.id }}"
-                                        data-patente="{{ s.vehiculo.patente }}"
-                                        data-fecha-solicitada="{{ s.fecha_solicitada|date:'Y-m-d' }}">
+                                <button
+                                    class="btn btn-primary btn-sm btn-asignar"
+                                    data-solicitud-id="{{ s.id }}"
+                                    data-patente="{{ s.vehiculo.patente }}"
+                                    data-fecha-solicitada="{{ s.fecha_solicitada|date:'Y-m-d' }}">
                                     Programar ingreso
                                 </button>
                             </td>
@@ -74,78 +73,96 @@
         </div>
     </div>
 
-
     <!-- ===========================================
-            MODAL ASIGNACIÓN / APROBACIÓN
+         MODAL ASIGNACIÓN / APROBACIÓN (POPUP)
+         Usa .custom-modal + .modal-content del CSS
     ============================================ -->
     <div id="modalAsignacion" class="custom-modal d-none">
-        <div class="card modal-card p-4 shadow-lg">
+        <div class="modal-content card p-4 shadow-lg">
 
-            <h5 class="fw-bold mb-3">Aprobar Solicitud de Ingreso</h5>
+            <!-- Cabecera del popup -->
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1">Aprobar Solicitud de Ingreso</h5>
+                    <p class="text-muted mb-0">
+                        Completa la fecha/hora real de ingreso al taller y asigna un mecánico.
+                    </p>
+                </div>
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        onclick="cerrarModal()">
+                    ✕
+                </button>
+            </div>
 
-            <p class="text-muted mb-1">
-                Patente: <strong><span id="asig_patente_txt"></span></strong>
-            </p>
-            <p class="text-muted">
-                Fecha solicitada: <strong><span id="asig_fecha_solicitada_txt"></span></strong>
-            </p>
+            <!-- Info de la solicitud -->
+            <div class="mb-3">
+                <p class="mb-1">
+                    <span class="text-muted">Patente:</span>
+                    <strong><span id="asig_patente_txt"></span></strong>
+                </p>
+                <p class="mb-0">
+                    <span class="text-muted">Fecha solicitada:</span>
+                    <strong><span id="asig_fecha_solicitada_txt"></span></strong>
+                </p>
+            </div>
 
+            <!-- Formulario dentro del popup -->
             <form id="formAsignacion">
 
-                <!-- ID de la solicitud (oculto) -->
                 <input type="hidden" id="asig_solicitud_id">
 
-                <!-- Fecha REAL de ingreso -->
-                <div class="mt-3">
-                    <label class="form-label">Fecha de ingreso al taller</label>
-                    <input id="asig_fecha_ingreso" type="date" class="form-control">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha de ingreso al taller</label>
+                        <input id="asig_fecha_ingreso" type="date" class="form-control">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Hora de ingreso al taller</label>
+                        <input id="asig_hora_ingreso" type="time" class="form-control">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Mecánico asignado</label>
+                        <select id="asig_mecanico" class="form-select">
+                            {% for m in mecanicos %}
+                                {% if m.is_active %}
+                                    <option value="{{ m.rut }}">
+                                        {{ m.nombre }} ({{ m.rut }})
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Módulo / Pasillo en el taller</label>
+                        <select id="asig_modulo" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Módulo 1">Módulo 1</option>
+                            <option value="Módulo 2">Módulo 2</option>
+                            <option value="Módulo 3">Módulo 3</option>
+                        </select>
+                        <small class="text-muted">
+                            Sector físico donde se recibirá el vehículo. Ajusta las opciones
+                            según la distribución real de tu taller.
+                        </small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Comentario</label>
+                        <textarea id="asig_comentario"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Ej: Aprobada, programado ingreso en este horario."></textarea>
+                    </div>
                 </div>
 
-                <!-- Hora REAL de ingreso -->
-                <div class="mt-3">
-                    <label class="form-label">Hora de ingreso al taller</label>
-                    <input id="asig_hora_ingreso" type="time" class="form-control">
-                </div>
-
-                <!-- Mecánico -->
-                <div class="mt-3">
-                    <label class="form-label">Mecánico asignado</label>
-                    <select id="asig_mecanico" class="form-select">
-                        {% for m in mecanicos %}
-                            {% if m.is_active %}
-                                <option value="{{ m.rut }}">
-                                    {{ m.nombre }} ({{ m.rut }})
-                                </option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                </div>
-                <!-- Módulo / Pasillo dentro del taller -->
-                <div class="mt-3">
-                    <label class="form-label">Módulo / Pasillo en el taller</label>
-                    <select id="asig_modulo" class="form-select">
-                        <option value="">Seleccione...</option>
-                        <option value="Módulo 1">Módulo 1</option>
-                        <option value="Módulo 2">Módulo 2</option>
-                        <option value="Módulo 3">Módulo 3</option>
-                    </select>
-                    <small class="text-muted">
-                        Sector físico donde se recibirá el vehículo. Ajusta las opciones según la distribución real de tu taller.
-                    </small>
-                </div>
-
-                <!-- Comentario -->
-                <div class="mt-3">
-                    <label class="form-label">Comentario</label>
-                    <textarea id="asig_comentario"
-                              class="form-control"
-                              placeholder="Ej: Aprobada, programado ingreso en este horario."
-                    ></textarea>
-                </div>
-
-                <!-- Acciones -->
                 <div class="text-end mt-4">
-                    <button type="button" class="btn btn-secondary me-2" onclick="cerrarModal()">
+                    <button type="button"
+                            class="btn btn-secondary me-2"
+                            onclick="cerrarModal()">
                         Cancelar
                     </button>
                     <button type="submit" class="btn btn-primary">
@@ -154,7 +171,6 @@
                 </div>
 
             </form>
-
         </div>
     </div>
 

@@ -8,7 +8,7 @@ register = template.Library()
 def has_group(user, group_name):
     """
     Verifica si el usuario pertenece a un grupo Django específico.
-    Uso en template:
+    Uso:
         {% if request.user|has_group:"SUPERVISOR" %}
     """
     if not user or not user.is_authenticated:
@@ -22,7 +22,7 @@ def has_group(user, group_name):
 def has_any_group(user, group_names):
     """
     Verifica si el usuario pertenece a cualquiera de los grupos indicados.
-    Uso en template:
+    Uso:
         {% if request.user|has_any_group:"SUPERVISOR,MECANICO" %}
     """
     if not user or not user.is_authenticated:
@@ -31,7 +31,7 @@ def has_any_group(user, group_names):
     if not group_names:
         return False
 
-    names = [g.strip() for g in group_names.split(',') if g.strip()]
+    names = [g.strip() for g in group_names.split(",") if g.strip()]
     if not names:
         return False
 

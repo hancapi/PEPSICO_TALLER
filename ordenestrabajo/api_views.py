@@ -20,7 +20,7 @@ from .models import OrdenTrabajo, SolicitudIngresoVehiculo
 logger = logging.getLogger(__name__)
 
 # Estados considerados como "activos" para una OT (se muestran en Registro Taller
-# y bloquean nuevos horarios para el mismo vehículo/hora/taller).
+# y bloquean nuevos horarios para el mismo vehículo/hora/recinto).
 ACTIVE_STATES = ["Pendiente", "Recibida", "En Taller", "En Proceso", "Pausado"]
 
 
@@ -30,11 +30,11 @@ ACTIVE_STATES = ["Pendiente", "Recibida", "En Taller", "En Proceso", "Pausado"]
 def _get_supervisor(request):
     """
     Devuelve el Empleado que corresponde al usuario autenticado
-    con su taller pre-cargado (select_related('taller')).
+    con su RECINTO pre-cargado (select_related('recinto')).
     """
     return (
         Empleado.objects
-        .select_related("taller")
+        .select_related("recinto")
         .filter(usuario=request.user.username)
         .first()
     )
@@ -53,9 +53,9 @@ def _ot_activa_para_vehiculo(vehiculo):
     )
 
 
-def _get_mecanico_en_taller(mecanico_rut, taller_id):
+def _get_mecanico_en_recinto(mecanico_rut, recinto_id):
     """
-    Devuelve el mecánico activo para el RUT indicado dentro del taller dado,
+    Devuelve el mecánico activo para el RUT indicado dentro del RECINTO dado,
     o None si no existe / no cumple condiciones.
     """
     return (
@@ -63,7 +63,7 @@ def _get_mecanico_en_taller(mecanico_rut, taller_id):
         .filter(
             rut=mecanico_rut,
             cargo="MECANICO",
-            taller_id=taller_id,
+            recinto_id=recinto_id,
             is_active=True,
         )
         .first()
@@ -104,22 +104,26 @@ def api_agenda_slots(request):
             status=400,
         )
 
-    if not Taller.objects.filter(taller_id=taller_id_int).exists():
+    taller = Taller.objects.filter(taller_id=taller_id_int).first()
+    if not taller:
         return JsonResponse(
             {"success": False, "message": "Taller no encontrado."},
             status=404,
         )
 
+    # Usamos el RECINTO del taller para buscar las OTs de ese lugar
+    recinto_id = taller.recinto_id
+
     # Rango horario fijo 09:00–18:00
     start_dt = datetime.combine(fecha, dtime(9, 0))
     end_dt = datetime.combine(fecha, dtime(18, 0))
 
-    # Horarios ya ocupados por OTs activas
+    # Horarios ya ocupados por OTs activas en ese RECINTO
     ots = (
         OrdenTrabajo.objects
         .filter(
             fecha_ingreso=fecha,
-            taller_id=taller_id_int,
+            recinto_id=recinto_id,
             estado__in=ACTIVE_STATES,
         )
         .values_list("hora_ingreso", flat=True)
@@ -148,7 +152,7 @@ def api_agenda_slots(request):
 def api_crear_ingreso(request):
     """
     Crea una solicitud de ingreso de vehículo al taller.
-    - El chofer define patente, fecha y taller.
+    - El chofer define patente, fecha y taller (andén).
     - NO se crea OT en esta etapa.
     - NO se modifica el estado del vehículo.
     """
@@ -156,7 +160,7 @@ def api_crear_ingreso(request):
 
     empleado = (
         Empleado.objects
-        .select_related("taller")
+        .select_related("recinto")
         .filter(usuario=user.username)
         .first()
     )
@@ -214,12 +218,12 @@ def api_crear_ingreso(request):
             status=404,
         )
 
-    # Validar que el empleado pertenezca al mismo taller
-    if empleado.taller_id != taller_id_int:
+    # Validar que el empleado pertenezca al mismo RECINTO del taller
+    if empleado.recinto_id != taller.recinto_id:
         return JsonResponse(
             {
                 "success": False,
-                "message": "No puedes registrar ingresos en un taller que no es el tuyo.",
+                "message": "No puedes registrar ingresos en un taller de otro recinto.",
             },
             status=403,
         )
@@ -251,10 +255,8 @@ def api_crear_ingreso(request):
         # estado por defecto: PENDIENTE
     )
 
-    # No se toca vehiculo.estado ni ubicacion aquí.
-    # Eso ocurrirá cuando el supervisor apruebe y genere la OT.
-    # 👇 Extra: si el vehículo quedó en "En Taller" por pruebas antiguas y
-    #           hoy NO tiene OT activa, lo devolvemos a "Disponible".
+    # Si por pruebas anteriores el vehículo quedó "En Taller" pero ahora no tiene OT activa,
+    # lo devolvemos a "Disponible".
     if vehiculo.estado == "En Taller":
         vehiculo.estado = "Disponible"
         vehiculo.save()
@@ -291,7 +293,7 @@ def api_ultimas_ot(request):
     # 2️⃣ Filtrar últimas OT finalizadas + vehículo disponible
     ots = (
         OrdenTrabajo.objects
-        .select_related("patente", "taller")
+        .select_related("patente", "recinto")
         .filter(
             ot_id__in=subquery,            # solo la última OT del vehículo
             estado="Finalizado",           # esa OT debe estar finalizada
@@ -329,9 +331,9 @@ def api_asignar_ot(request):
         )
 
     supervisor = _get_supervisor(request)
-    if not supervisor or not supervisor.taller:
+    if not supervisor or not supervisor.recinto_id:
         return JsonResponse(
-            {"success": False, "message": "No se pudo determinar tu taller."}
+            {"success": False, "message": "No se pudo determinar tu recinto."}
         )
 
     ot = (
@@ -339,17 +341,17 @@ def api_asignar_ot(request):
         .filter(
             ot_id=ot_id,
             estado="Pendiente",
-            taller_id=supervisor.taller.taller_id,
+            recinto_id=supervisor.recinto_id,
         )
-        .select_related("patente")
+        .select_related("patente", "recinto")
         .first()
     )
     if not ot:
         return JsonResponse(
-            {"success": False, "message": "OT no válida para este taller."}
+            {"success": False, "message": "OT no válida para tu recinto."}
         )
 
-    mec = _get_mecanico_en_taller(mecanico_rut, supervisor.taller.taller_id)
+    mec = _get_mecanico_en_recinto(mecanico_rut, supervisor.recinto_id)
     if not mec:
         return JsonResponse(
             {"success": False, "message": "Mecánico inválido."}
@@ -381,7 +383,9 @@ def api_asignar_ot(request):
 
     veh = ot.patente
     veh.estado = "En Taller"
-    veh.ubicacion = supervisor.taller.nombre
+    # Ubicación: nombre del recinto del supervisor
+    if supervisor.recinto:
+        veh.ubicacion = supervisor.recinto.nombre
     veh.save()
 
     return JsonResponse({"success": True})
@@ -402,7 +406,7 @@ def api_mecanico_vehiculos(request):
 
     ots = (
         OrdenTrabajo.objects
-        .select_related("patente")
+        .select_related("patente", "recinto")
         .filter(
             rut=empleado.rut,
             estado__in=ACTIVE_STATES,
@@ -419,7 +423,7 @@ def api_mecanico_vehiculos(request):
 
 
 # ==========================================================
-# 🧰 API — SUPERVISOR: vehículos EN TALLER de su taller
+# 🧰 API — SUPERVISOR: vehículos EN TALLER de su recinto
 # GET /api/ordenestrabajo/supervisor/vehiculos/
 # ==========================================================
 @login_required
@@ -428,20 +432,20 @@ def api_mecanico_vehiculos(request):
 def api_supervisor_vehiculos(request):
     supervisor = _get_supervisor(request)
 
-    if not supervisor or not supervisor.taller_id:
+    if not supervisor or not supervisor.recinto_id:
         return JsonResponse(
             {
                 "success": False,
-                "message": "No se pudo determinar tu taller.",
-                "html": "<div class='alert alert-danger'>No se pudo determinar tu taller.</div>",
+                "message": "No se pudo determinar tu recinto.",
+                "html": "<div class='alert alert-danger'>No se pudo determinar tu recinto.</div>",
             }
         )
 
     ots = (
         OrdenTrabajo.objects
-        .select_related("patente", "taller", "rut")
+        .select_related("patente", "recinto", "rut")
         .filter(
-            taller_id=supervisor.taller_id,
+            recinto_id=supervisor.recinto_id,
             estado__in=ACTIVE_STATES,
         )
         .order_by("-fecha_ingreso", "-hora_ingreso")
@@ -456,7 +460,7 @@ def api_supervisor_vehiculos(request):
 
 
 # ==========================================================
-# 🧰 API — SUPERVISOR: OTs PENDIENTES de su taller (LEGACY)
+# 🧰 API — SUPERVISOR: OTs PENDIENTES de su recinto (LEGACY)
 # GET /api/ordenestrabajo/supervisor/pendientes/
 # ==========================================================
 @login_required
@@ -465,24 +469,24 @@ def api_supervisor_vehiculos(request):
 def api_supervisor_pendientes(request):
     """
     Flujo antiguo: lista OTs en estado Pendiente
-    del taller del supervisor.
+    del recinto del supervisor.
     """
     supervisor = _get_supervisor(request)
 
-    if not supervisor or not supervisor.taller_id:
+    if not supervisor or not supervisor.recinto_id:
         return JsonResponse(
             {
                 "success": False,
-                "message": "No se pudo determinar tu taller.",
-                "html": "<tr><td colspan='6' class='text-center text-danger'>No se pudo determinar tu taller.</td></tr>",
+                "message": "No se pudo determinar tu recinto.",
+                "html": "<tr><td colspan='6' class='text-center text-danger'>No se pudo determinar tu recinto.</td></tr>",
             }
         )
 
     ots = (
         OrdenTrabajo.objects
-        .select_related("patente", "taller", "rut")
+        .select_related("patente", "recinto", "rut")
         .filter(
-            taller_id=supervisor.taller_id,
+            recinto_id=supervisor.recinto_id,
             estado="Pendiente",
         )
         .order_by("fecha_ingreso", "hora_ingreso")
@@ -506,16 +510,16 @@ def api_supervisor_pendientes(request):
 def api_supervisor_solicitudes(request):
     """
     Devuelve las solicitudes de ingreso PENDIENTES
-    del taller del supervisor.
+    de los talleres del recinto del supervisor.
     """
     supervisor = _get_supervisor(request)
 
-    if not supervisor or not supervisor.taller_id:
+    if not supervisor or not supervisor.recinto_id:
         return JsonResponse(
             {
                 "success": False,
-                "message": "No se pudo determinar tu taller.",
-                "html": "<tr><td colspan='7' class='text-center text-danger'>No se pudo determinar tu taller.</td></tr>",
+                "message": "No se pudo determinar tu recinto.",
+                "html": "<tr><td colspan='7' class='text-center text-danger'>No se pudo determinar tu recinto.</td></tr>",
             }
         )
 
@@ -523,7 +527,7 @@ def api_supervisor_solicitudes(request):
         SolicitudIngresoVehiculo.objects
         .select_related("vehiculo", "chofer", "taller")
         .filter(
-            taller_id=supervisor.taller_id,
+            taller__recinto_id=supervisor.recinto_id,
             estado="PENDIENTE",
         )
         .order_by("fecha_solicitada", "creado_en")
@@ -575,9 +579,9 @@ def api_supervisor_aprobar_solicitud(request):
         )
 
     supervisor = _get_supervisor(request)
-    if not supervisor or not supervisor.taller_id:
+    if not supervisor or not supervisor.recinto_id:
         return JsonResponse(
-            {"success": False, "message": "No se pudo determinar tu taller."}
+            {"success": False, "message": "No se pudo determinar tu recinto."}
         )
 
     # Parseo de fecha/hora
@@ -601,13 +605,14 @@ def api_supervisor_aprobar_solicitud(request):
             {"success": False, "message": "Solicitud no válida."}
         )
 
-    if solicitud.taller_id != supervisor.taller_id:
+    # La solicitud debe pertenecer a un taller dentro del RECINTO del supervisor
+    if solicitud.taller.recinto_id != supervisor.recinto_id:
         return JsonResponse(
-            {"success": False, "message": "La solicitud no pertenece a tu taller."}
+            {"success": False, "message": "La solicitud no pertenece a tu recinto."}
         )
 
-    # Validar mecánico
-    mec = _get_mecanico_en_taller(mecanico_rut, supervisor.taller_id)
+    # Validar mecánico en el mismo recinto
+    mec = _get_mecanico_en_recinto(mecanico_rut, supervisor.recinto_id)
     if not mec:
         return JsonResponse(
             {"success": False, "message": "Mecánico inválido."}
@@ -632,13 +637,13 @@ def api_supervisor_aprobar_solicitud(request):
             status=409,
         )
 
-    # Evitar doble horario en mismo taller
+    # Evitar doble horario en mismo RECINTO
     slot_ocupado = (
         OrdenTrabajo.objects
         .filter(
             fecha_ingreso=fecha,
             hora_ingreso=hora,
-            taller_id=supervisor.taller_id,
+            recinto_id=supervisor.recinto_id,
             estado__in=ACTIVE_STATES,
         )
         .exists()
@@ -670,14 +675,14 @@ def api_supervisor_aprobar_solicitud(request):
     # Armar descripción final incorporando AUTOR + MÓDULO/PASILLO
     descripcion_ot = f"{autor_tag} [{modulo}] {comentario}"
 
-    # Crear OT
+    # Crear OT — ahora ligada al RECINTO del supervisor
     ot = OrdenTrabajo.objects.create(
         fecha_ingreso=fecha,
         hora_ingreso=hora,
         descripcion=descripcion_ot,
         estado="Pendiente",
         patente=vehiculo,
-        taller=solicitud.taller,
+        recinto_id=supervisor.recinto_id,
         rut=mec,
         rut_creador=supervisor,
     )

@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 
 from .models import Vehiculo
 from .forms import VehiculoForm
-from talleres.models import Taller
+from talleres.models import Taller  # sigue existiendo para otros usos
 from ordenestrabajo.models import OrdenTrabajo
 from autenticacion.models import Empleado
 
@@ -31,7 +31,8 @@ def ingreso_vehiculos(request):
     user = request.user
 
     try:
-        empleado = Empleado.objects.select_related('taller').get(usuario=user.username)
+        # antes: select_related('taller')
+        empleado = Empleado.objects.select_related('recinto').get(usuario=user.username)
     except Empleado.DoesNotExist:
         empleado = None
 
@@ -77,7 +78,8 @@ def ficha_vehiculo(request, patente: str = None):
 
     user = request.user
     try:
-        empleado = Empleado.objects.select_related('taller').get(usuario=user.username)
+        # antes: select_related('taller')
+        empleado = Empleado.objects.select_related('recinto').get(usuario=user.username)
     except Empleado.DoesNotExist:
         empleado = None
 
@@ -163,7 +165,7 @@ def existe_vehiculo(request):
 
 
 # ==========================================================
-# API Ficha datos generales + OT actual + Documentos agrupados  🔥
+# API Ficha datos generales + OT actual + Documentos agrupados
 # ==========================================================
 
 @require_GET
@@ -199,24 +201,24 @@ def api_ficha(request):
     ot_actual = (
         OrdenTrabajo.objects
             .filter(patente_id=patente, estado__in=estados_activos)
+            .select_related("recinto")
             .order_by('-fecha_ingreso', '-hora_ingreso')
             .first()
     )
 
-
     ot_payload = None
     if ot_actual:
-        taller_nombre = (
-            Taller.objects.filter(pk=ot_actual.taller_id)
-            .values_list('nombre', flat=True).first()
-        )
+        # OrdenTrabajo ahora tiene recinto, no taller.
+        taller_id = getattr(ot_actual, "recinto_id", None)
+        taller_nombre = getattr(ot_actual.recinto, "nombre", None) if ot_actual.recinto_id else None
 
         ot_payload = {
             'id': ot_actual.ot_id,
             'fecha': ot_actual.fecha_ingreso.isoformat(),
             'hora': ot_actual.hora_ingreso.strftime('%H:%M') if ot_actual.hora_ingreso else None,
             'estado': ot_actual.estado,
-            'taller_id': ot_actual.taller_id,
+            # mantenemos las mismas claves que espera el JS, pero usando recinto
+            'taller_id': taller_id,
             'taller_nombre': taller_nombre,
         }
 
@@ -269,9 +271,6 @@ def api_ficha(request):
         for d in Documento.objects.filter(patente_id=patente, ot__isnull=True).order_by("-creado_en")
     ]
 
-    # ======================================================
-    # 🚀 FIX ÚNICO — CLAVES CORRECTAS QUE EL JS ESPERA
-    # ======================================================
     return JsonResponse({
         'success': True,
         'vehiculo': {
@@ -285,13 +284,13 @@ def api_ficha(request):
         },
         'kpis': {'ots': kpi_ots},
         'ot_actual': ot_payload,
-
         'documentos': {
             "actual": docs_ot_actual,
             "finalizadas": docs_ots_finalizadas,
             "vehiculo": docs_vehiculo
         }
     })
+
 
 @require_GET
 @login_required
@@ -305,39 +304,23 @@ def api_ficha_ots(request):
             status=400
         )
 
-    # ==============================
-    #  Base: TODAS las OTs del veh
-    # ==============================
-    qs = OrdenTrabajo.objects.filter(patente_id=patente)
+    # Base: TODAS las OTs del vehículo
+    qs = OrdenTrabajo.objects.filter(patente_id=patente).select_related("recinto")
 
-    # Solo aplicamos rango de fechas si el frontend manda from/to
+    # Rango de fechas opcional
     if request.GET.get("from") or request.GET.get("to"):
         dfrom, dto = _range_from_request(request)
         qs = qs.filter(fecha_ingreso__range=(dfrom, dto))
 
     estado = (request.GET.get('estado') or "").strip()
-    taller = (request.GET.get('taller') or "").strip()
+    filtro_taller = (request.GET.get('taller') or "").strip()
 
     if estado:
         qs = qs.filter(estado=estado)
 
-    if taller:
-        if taller.isdigit():
-            qs = qs.filter(taller_id=int(taller))
-        else:
-            ids = list(
-                Taller.objects
-                      .filter(nombre__icontains=taller)
-                      .values_list('taller_id', flat=True)
-            )
-            qs = qs.filter(taller_id__in=ids or [-1])
-
-    taller_ids = list(qs.values_list('taller_id', flat=True))
-    taller_map = dict(
-        Taller.objects
-              .filter(taller_id__in=taller_ids)
-              .values_list('taller_id', 'nombre')
-    )
+    # Ahora filtramos por nombre de recinto (taller lógico)
+    if filtro_taller:
+        qs = qs.filter(recinto__nombre__icontains=filtro_taller)
 
     items = []
     for ot in qs.order_by('-fecha_ingreso', '-hora_ingreso', '-ot_id'):
@@ -345,8 +328,9 @@ def api_ficha_ots(request):
             'id': ot.ot_id,
             'fecha': ot.fecha_ingreso.isoformat(),
             'hora': ot.hora_ingreso.strftime('%H:%M') if ot.hora_ingreso else None,
-            'taller_id': ot.taller_id,
-            'taller_nombre': taller_map.get(ot.taller_id),
+            # mismas claves que esperaba el JS, pero usando recinto
+            'taller_id': getattr(ot, "recinto_id", None),
+            'taller_nombre': getattr(ot.recinto, "nombre", None) if ot.recinto_id else None,
             'estado': ot.estado,
             'rut': getattr(ot.rut, 'rut', None),
             'rut_creador': getattr(ot.rut_creador, 'rut', None),

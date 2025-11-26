@@ -9,9 +9,7 @@ from django.views.decorators.http import require_POST, require_GET
 
 from autenticacion.models import Empleado
 from vehiculos.models import Vehiculo
-from talleres.models import Taller
-from .models import OrdenTrabajo, Pausa
-
+from .models import OrdenTrabajo, Pausa  # Taller ya no es necesario aquí
 
 ACTIVE_STATES = ["Pendiente", "En Proceso", "En Taller"]
 
@@ -108,14 +106,34 @@ def pausa_list(request, ot_id):
 def ingresos_en_curso_api(request):
     user = request.user
 
-    empleado = Empleado.objects.filter(usuario=user.username).first()
-    if not empleado:
-        return JsonResponse({"success": False, "message": "Empleado no encontrado."}, status=400)
+    # Antes usábamos taller; ahora trabajamos por RECINTO
+    empleado = (
+        Empleado.objects
+        .select_related("recinto")
+        .filter(usuario=user.username)
+        .first()
+    )
 
-    ots = OrdenTrabajo.objects.filter(
-        taller_id=empleado.taller_id,
-        estado__in=ACTIVE_STATES
-    ).order_by("-fecha_ingreso", "-hora_ingreso")
+    if not empleado:
+        return JsonResponse(
+            {"success": False, "message": "Empleado no encontrado."},
+            status=400,
+        )
+
+    if not empleado.recinto_id:
+        return JsonResponse(
+            {"success": False, "message": "Empleado sin recinto asignado."},
+            status=400,
+        )
+
+    ots = (
+        OrdenTrabajo.objects
+        .filter(
+            recinto_id=empleado.recinto_id,
+            estado__in=ACTIVE_STATES,
+        )
+        .order_by("-fecha_ingreso", "-hora_ingreso")
+    )
 
     data = [
         {

@@ -1,3 +1,4 @@
+{# templates/agenda.html #}
 {% extends "base.html" %}
 {% load static %}
 
@@ -39,6 +40,15 @@
     </div>
 
 </div>
+
+{# 👇 Importante: inyectar el ID del taller para agenda.js, de forma segura #}
+<script>
+  // Si `taller_id` no viene en el contexto, se fuerza a "0"
+  window.TALLER_ID = parseInt(
+    "{{ taller_id|default_if_none:'0'|default:'0' }}",
+    10
+  ) || 0;
+</script>
 
 <script src="{% static 'js/agenda.js' %}"></script>
 {% endblock %}

@@ -19,21 +19,25 @@ def normalize(p):
 def registro_taller_page(request):
 
     user = request.user
+
+    # Antes: select_related("taller") → ahora usamos "recinto"
     empleado = (
-        Empleado.objects.select_related("taller")
+        Empleado.objects
+        .select_related("recinto")
         .filter(usuario=user.username)
         .first()
     )
 
-    # 🚨 NUEVO: determinar modo (mecánico o supervisor)
+    # modo de vista según cargo
     modo = "mecanico"
     if empleado and empleado.cargo and empleado.cargo.upper() == "SUPERVISOR":
         modo = "supervisor"
 
-    if not empleado or not empleado.taller:
+    # Antes: empleado.taller → ahora empleado.recinto
+    if not empleado or not empleado.recinto:
         return render(request, "registro-taller.html", {
             "menu_active": "registro_taller",
-            "error": "No tienes taller asignado.",
+            "error": "No tienes recinto/taller asignado.",
             "empleado": empleado,
             "vehiculos": [],
             "kpis": {"total_vehiculos": 0, "en_taller": 0, "en_proceso": 0},
@@ -41,7 +45,7 @@ def registro_taller_page(request):
         })
 
     # ============================================================
-    # POST → actualizar estado
+    # POST → actualizar estado de OT
     # ============================================================
     if request.method == "POST":
 
@@ -52,7 +56,6 @@ def registro_taller_page(request):
         if not patente or not nuevo_estado:
             return JsonResponse({"success": False, "message": "Debe indicar patente y estado."})
 
-        # Si finaliza → comentario obligatorio
         if nuevo_estado == "Finalizado" and comentario == "":
             return JsonResponse({
                 "success": False,
@@ -63,7 +66,6 @@ def registro_taller_page(request):
         if not veh:
             return JsonResponse({"success": False, "message": f"No existe el vehículo {patente}."})
 
-        # Buscar OT activa
         ot = (
             OrdenTrabajo.objects.filter(
                 patente_id=patente,
@@ -76,14 +78,11 @@ def registro_taller_page(request):
         if not ot:
             return JsonResponse({"success": False, "message": "No hay OT activa para actualizar."})
 
-        # ============================================================
-        # 🔥 Validación de transiciones permitidas (ACTUALIZADAS)
-        # ============================================================
         TRANSICIONES_VALIDAS = {
             "Pendiente": ["En Taller"],
             "En Taller": ["En Proceso", "Pausado"],
             "En Proceso": ["Pausado", "Finalizado"],
-            "Pausado": ["En Taller", "En Proceso", "Finalizado"],  # ✔ agregado “En Taller”
+            "Pausado": ["En Taller", "En Proceso", "Finalizado"],
         }
 
         estado_actual = ot.estado
@@ -94,9 +93,6 @@ def registro_taller_page(request):
                 "message": f"No se puede cambiar de {estado_actual} a {nuevo_estado}."
             })
 
-        # ============================================================
-        # Aplicar cambios
-        # ============================================================
         ot.estado = nuevo_estado
         ot.descripcion = (ot.descripcion or "") + f"\n[{user.username}] {comentario}"
 
@@ -112,11 +108,15 @@ def registro_taller_page(request):
         return JsonResponse({"success": True, "message": "Estado actualizado correctamente."})
 
     # ============================================================
-    # GET → listar vehículos en taller
+    # GET → listar vehículos en taller del mismo RECINTO
     # ============================================================
-    ots = OrdenTrabajo.objects.filter(
-        taller_id=empleado.taller.taller_id,
-        estado__in=["Pendiente", "En Taller", "En Proceso", "Pausado"]  # ✔ se agregó Pausado
+    ots = (
+        OrdenTrabajo.objects
+        .select_related("patente")
+        .filter(
+            recinto=empleado.recinto,
+            estado__in=["Pendiente", "En Taller", "En Proceso", "Pausado"],
+        )
     )
 
     patentes = [normalize(ot.patente_id) for ot in ots]

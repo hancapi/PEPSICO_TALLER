@@ -1,36 +1,68 @@
-<div class="modal fade" id="modalAsignar" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
+<div id="modalAsignacion" class="custom-modal d-none">
+  <div class="modal-content bg-white shadow-lg p-3">
+    <div class="modal-header border-0 pb-2">
+      <h5 class="modal-title fw-bold">
+        Programar ingreso al taller
+      </h5>
+      <button type="button"
+              class="btn-close"
+              aria-label="Cerrar"
+              onclick="cerrarModal()"></button>
+    </div>
 
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Asignar OT</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
+    <div class="modal-body pt-0">
+      <p class="mb-2">
+        Vehículo: <strong id="asig_patente_txt">-</strong><br>
+        Fecha solicitada: <strong id="asig_fecha_solicitada_txt">-</strong>
+      </p>
 
-      <div class="modal-body">
-
-        <input type="hidden" id="asignarOtId">
+      <form id="formAsignacion" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="asig_solicitud_id" name="solicitud_id">
 
         <div class="mb-3">
-          <label class="form-label">Seleccionar Mecánico</label>
-          <select id="selectMecanico" class="form-select">
-            <option value="">Cargando mecánicos...</option>
+          <label for="asig_mecanico" class="form-label">Mecánico responsable</label>
+          <select id="asig_mecanico" name="mecanico_rut" class="form-select" required>
+            <option value="">Seleccione mecánico…</option>
+            {% for mec in mecanicos %}
+              <option value="{{ mec.rut }}">
+                {{ mec.nombre }} ({{ mec.rut }})
+              </option>
+            {% empty %}
+              <option value="">No hay mecánicos activos en tu taller.</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="asig_fecha_ingreso" class="form-label">Fecha de ingreso</label>
+            <input type="date"
+                   id="asig_fecha_ingreso"
+                   name="fecha_ingreso"
+                   class="form-control"
+                   required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label for="asig_hora_ingreso" class="form-label">Hora de ingreso</label>
+            <input type="time"
+                   id="asig_hora_ingreso"
+                   name="hora_ingreso"
+                   class="form-control"
+                   required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="asig_modulo" class="form-label">Módulo / Andén</label>
+          <select id="asig_modulo" name="modulo" class="form-select" required>
+            <option value="">Seleccione módulo…</option>
+            <option value="Andén 1">Andén 1</option>
+            <option value="Andén 2">Andén 2</option>
+            <option value="Andén 3">Andén 3</option>
+            <option value="Andén 4">Andén 4</option>
           </select>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Comentario</label>
-          <textarea id="comentarioAsignar" class="form-control" rows="3"
-                    placeholder="Debe ingresar comentario"></textarea>
-        </div>
-
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button class="btn btn-success" onclick="confirmarAsignacion()">Asignar</button>
-      </div>
-
-    </div>
-  </div>
-</div>
+          <label fo

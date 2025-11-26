@@ -1,23 +1,40 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Registro Taller{% endblock %}
+{% block title %}Registro Taller | Taller PepsiCo Chile{% endblock %}
 
 {% block content %}
 
-<div id="modoWrapper" data-modo="{{ modo }}"></div>
+<div id="modoWrapper" data-modo="{{ modo|default:'mecanico' }}"></div>
 
 <div class="page-container fade-in">
 
-    <h2 class="fw-bold mb-2">🛠️ Registro Taller</h2>
-    <p>Gestiona vehículos actualmente en el taller.</p>
+    <!-- ENCABEZADO -->
+    <div class="welcome-card mb-4">
+        <div class="welcome-content">
+            <div class="welcome-avatar">🛠️</div>
+            <div class="welcome-text">
+                <h1 class="mb-1">Registro Taller</h1>
+                <p class="m-0">
+                    Gestiona vehículos actualmente en el taller
+                    {% if modo == "supervisor" %}
+                        (vista Supervisor)
+                    {% elif modo == "mecanico" %}
+                        (vista Mecánico)
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
 
+    <!-- TABLA PRINCIPAL -->
     <div id="tablaVehiculosTaller" class="mt-4">
-        <p>Cargando vehículos asignados...</p>
+        <p class="text-muted">Cargando vehículos asignados...</p>
     </div>
 
 </div>
 
 <script src="{% static 'js/registro_taller.js' %}"></script>
+<script src="{% static 'js/registro_taller_estado.js' %}"></script>
 
 {% endblock %}

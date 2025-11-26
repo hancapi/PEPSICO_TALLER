@@ -12,7 +12,7 @@
                         <th>Patente</th>
                         <th>Marca / Modelo</th>
                         <th>Fecha Ingreso</th>
-                        <th>Estado</th>
+                        <th>Estado OT</th>
                         <th>Acciones</th>
                         <th></th>
                     </tr>
@@ -21,17 +21,22 @@
                 <tbody>
                 {% for ot in ots %}
                     <tr>
+                        <!-- Nº OT -->
                         <td class="fw-bold text-primary">#{{ ot.ot_id }}</td>
 
+                        <!-- Patente -->
                         <td>{{ ot.patente.patente }}</td>
 
+                        <!-- Marca / Modelo -->
                         <td>{{ ot.patente.marca }} {{ ot.patente.modelo }}</td>
 
+                        <!-- Fecha / hora ingreso -->
                         <td>
                             {{ ot.fecha_ingreso|date:"d M Y" }}
                             {{ ot.hora_ingreso|time:"H:i" }}
                         </td>
 
+                        <!-- Estado OT (badge) -->
                         <td>
                             {% if ot.estado == "Pendiente" %}
                                 <span class="badge bg-secondary">Programado</span>
@@ -48,22 +53,30 @@
                             {% endif %}
                         </td>
 
+                        <!-- Acciones -->
                         <td>
                             {% if ot.estado == "Pendiente" %}
-                                <button class="btn btn-sm btn-primary btn-recibir"
-                                        data-patente="{{ ot.patente.patente }}">
-                                    Recibir
-                                </button>
+                                {% if ot.patente.estado == "En Recinto" or ot.patente.estado == "En Taller" %}
+                                    <button class="btn btn-sm btn-primary btn-recibir"
+                                            data-patente="{{ ot.patente.patente }}">
+                                        Recibir
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            disabled
+                                            title="El guardia debe registrar primero el ingreso en control de acceso.">
+                                        Recibir
+                                    </button>
+                                {% endif %}
                             {% else %}
-
-                                {% if ot.estado == "Pausado" or ot.estado == "Recibida" %}
+                                {% if ot.estado == "Pausado" or ot.estado == "En Taller" or ot.estado == "Recibida" %}
                                     <button class="btn btn-sm btn-success btn-reanudar"
                                             data-patente="{{ ot.patente.patente }}">
                                         ▶
                                     </button>
                                 {% endif %}
 
-                                {% if ot.estado == "En Taller" or ot.estado == "En Proceso" or ot.estado == "Recibida" %}
+                                {% if ot.estado == "En Proceso" %}
                                     <button class="btn btn-sm btn-warning btn-pausar text-dark"
                                             data-patente="{{ ot.patente.patente }}">
                                         ⏸
@@ -76,10 +89,10 @@
                                         ✔
                                     </button>
                                 {% endif %}
-
                             {% endif %}
                         </td>
 
+                        <!-- Ver ficha -->
                         <td>
                             <a href="/ficha-vehiculo/?patente={{ ot.patente.patente }}"
                                class="btn btn-sm btn-outline-primary">

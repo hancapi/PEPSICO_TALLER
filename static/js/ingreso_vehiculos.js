@@ -15,12 +15,17 @@
   const okIngreso  = $("okIngreso");
   const errIngreso = $("errIngreso");
 
-  // Ya NO hay selección de hora
-  // Ya NO hay slotsGrid, slotSel, slotResumen ni agenda
+  // ==========================
+  // Helpers
+  // ==========================
+  function normalizePatente(value) {
+    if (!value) return "";
+    return value
+      .toUpperCase()
+      .replace(/\s+/g, "")      // quita espacios
+      .replace(/[.\-]/g, "");   // quita puntos y guiones
+  }
 
-  // ==========================
-  // Helpers de mensajes
-  // ==========================
   function limpiarMensajes() {
     okIngreso?.classList.add("d-none");
     errIngreso?.classList.add("d-none");
@@ -65,17 +70,19 @@
   async function crearSolicitud(e) {
     e.preventDefault();
 
-    const patente = inputPatente?.value.trim();
+    let patente = inputPatente?.value || "";
     const fecha   = inputFecha?.value;
     const taller  = selectTaller?.value;
     const desc    = inputDesc?.value.trim();
+
+    patente = normalizePatente(patente);
 
     if (!patente) return showErr("Debe ingresar la patente.");
     if (!fecha)   return showErr("Debe seleccionar una fecha.");
     if (!taller)  return showErr("Debe seleccionar un taller.");
 
     const fd = new FormData();
-    fd.append("patente", patente.toUpperCase());
+    fd.append("patente", patente);
     fd.append("fecha", fecha);
     fd.append("taller_id", taller);
     if (desc) fd.append("descripcion", desc);
@@ -83,7 +90,7 @@
     setButtonLoading(true);
 
     try {
-      // La vista /ingresos/create/ ahora debe interpretar esto como
+      // La vista /ingresos/create/ interpreta esto como
       // "crear solicitud de ingreso" SIN hora específica.
       const res = await fetch(`${API_BASE}/ingresos/create/`, {
         method: "POST",
@@ -104,7 +111,12 @@
       );
 
       form?.reset();
-      formReady(); // vuelve a deshabilitar botón hasta que se llenen campos
+      // volver a setear fecha por defecto después del reset
+      if (inputFecha && !inputFecha.value) {
+        const d = new Date();
+        inputFecha.value = d.toISOString().slice(0, 10);
+      }
+      formReady(); // deshabilita el botón hasta que se llenen campos
 
     } catch (e) {
       console.error("Error creando solicitud de ingreso:", e);

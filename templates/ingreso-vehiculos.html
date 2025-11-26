@@ -30,7 +30,14 @@
             </div>
             <div class="text-end small">
                 <div><strong>Región:</strong> {{ empleado.region }}</div>
-                <div><strong>Taller:</strong> {{ empleado.taller.nombre }}</div>
+                <div>
+                    <strong>Taller:</strong>
+                    {% if empleado.recinto %}
+                        {{ empleado.recinto.nombre }}
+                    {% else %}
+                        Sin recinto asignado
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -39,6 +46,8 @@
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <h5 class="fw-bold mb-3">📝 Solicitar Ingreso</h5>
+
+            <p id="creatorInfo" class="text-muted small mb-3"></p>
 
             <form id="formIngreso">
                 {% csrf_token %}
@@ -60,9 +69,19 @@
                         <select id="tallerId" class="form-select">
                             <option value="">Seleccione...</option>
                             {% for t in talleres %}
-                                <option value="{{ t.taller_id }}" {% if empleado.taller_id == t.taller_id %}selected{% endif %}>
-                                    {{ t.nombre }}
-                                </option>
+                                {% ifchanged t.recinto_id %}
+                                    <option value="{{ t.taller_id }}"
+                                        {% if empleado.recinto and empleado.recinto_id == t.recinto_id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {% if t.recinto %}
+                                            {{ t.recinto.nombre }}
+                                        {% else %}
+                                            Taller {{ t.taller_id }}
+                                        {% endif %}
+                                    </option>
+                                {% endifchanged %}
                             {% endfor %}
                         </select>
                     </div>
@@ -82,6 +101,10 @@
 
         </div>
     </div>
+    {% else %}
+        <div class="alert alert-warning">
+            Solo choferes y supervisores pueden solicitar ingreso de vehículos.
+        </div>
     {% endif %}
     {% else %}
         <div class="alert alert-warning">No tienes permisos para esta sección.</div>
@@ -89,6 +112,5 @@
 
 </div>
 
-{# OJO: nombre del JS corregido al archivo que estamos usando #}
 <script src="{% static 'js/ingreso_vehiculos.js' %}"></script>
 {% endblock %}

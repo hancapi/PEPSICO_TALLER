@@ -7,10 +7,16 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth import authenticate, login, logout
+from django.db.models import Q
 
 from vehiculos.models import Vehiculo
 from autenticacion.models import Empleado
-from ordenestrabajo.models import OrdenTrabajo, SolicitudIngresoVehiculo
+from ordenestrabajo.models import (
+    OrdenTrabajo,
+    SolicitudIngresoVehiculo,
+    DesignacionVehicular,
+    ControlAcceso,
+)
 from talleres.models import Taller
 
 from autenticacion.roles import (
@@ -20,7 +26,13 @@ from autenticacion.roles import (
     mecanico_or_supervisor,
     supervisor_only,
     todos_roles,
+    guardia_only,
+    # guardia_or_supervisor  # lo puedes usar después si quieres
 )
+
+# ✅ Importamos la vista canónica del guardia
+from ordenestrabajo.views_control_acceso import control_acceso_guardia
+
 
 # ==========================================================
 # 🔐 LOGIN — Página pública
@@ -63,7 +75,7 @@ def inicio_page(request):
 
     empleado = (
         Empleado.objects
-        .select_related('taller')
+        .select_related('recinto')
         .filter(usuario=user.username)
         .first()
     )
@@ -90,7 +102,8 @@ def inicio_page(request):
 
 
 # ==========================================================
-# 🚗 INGRESO DE VEHÍCULOS
+# 🚗 SOLICITUD DE INGRESO DE VEHÍCULOS
+#    (Chofer / Supervisor -> crea SolicitudIngresoVehiculo PENDIENTE)
 # ==========================================================
 @login_required(login_url='inicio-sesion')
 @chofer_or_supervisor
@@ -100,12 +113,27 @@ def ingreso_vehiculos_page(request):
 
     empleado = (
         Empleado.objects
-        .select_related('taller')
+        .select_related('recinto')
         .filter(usuario=user.username)
         .first()
     )
 
-    talleres = Taller.objects.all().order_by('nombre')
+    # Lista de talleres: dejamos 1 por recinto (evitar duplicados "Santa rosa")
+    qs_talleres = (
+        Taller.objects
+        .select_related('recinto')
+        .order_by('recinto__nombre', 'nro_anden')
+    )
+
+    talleres = []
+    vistos_recintos = set()
+    for t in qs_talleres:
+        rid = t.recinto_id
+        if rid in vistos_recintos:
+            continue
+        vistos_recintos.add(rid)
+        talleres.append(t)
+
     vehiculos = Vehiculo.objects.all().order_by('patente')
 
     if request.method == "POST":
@@ -118,22 +146,25 @@ def ingreso_vehiculos_page(request):
             return redirect("ingreso-vehiculos")
 
         if not taller_id:
-            if empleado and empleado.taller_id:
-                taller_id = empleado.taller_id
-            else:
-                messages.error(request, "Debe seleccionar un taller.")
-                return redirect("ingreso-vehiculos")
+            messages.error(request, "Debe seleccionar un taller.")
+            return redirect("ingreso-vehiculos")
 
         vehiculo = Vehiculo.objects.filter(patente=patente).first()
-        taller = Taller.objects.filter(taller_id=taller_id).first()
+        taller = (
+            Taller.objects
+            .select_related('recinto')
+            .filter(taller_id=taller_id)
+            .first()
+        )
 
         if not vehiculo or not taller:
             messages.error(request, "Datos inválidos.")
             return redirect("ingreso-vehiculos")
 
+        # 🔎 Verificar si ya existe una OT activa
         ot_activa = OrdenTrabajo.objects.filter(
             patente=vehiculo,
-            estado__in=["Pendiente", "En Proceso", "En Taller"],
+            estado__in=["Pendiente", "En Proceso", "En Taller", "Pausado"],
         ).first()
 
         if ot_activa:
@@ -143,26 +174,38 @@ def ingreso_vehiculos_page(request):
             )
             return redirect("ingreso-vehiculos")
 
+        # 🔎 Verificar si ya existe una solicitud pendiente para ese vehículo
+        sol_pendiente = SolicitudIngresoVehiculo.objects.filter(
+            vehiculo=vehiculo,
+            estado="PENDIENTE",
+        ).first()
+
+        if sol_pendiente:
+            messages.warning(
+                request,
+                f"Ya existe una solicitud de ingreso pendiente para el vehículo {patente}."
+            )
+            return redirect("ingreso-vehiculos")
+
         ahora = timezone.now()
 
-        OrdenTrabajo.objects.create(
-            fecha_ingreso=ahora.date(),
-            hora_ingreso=ahora.time().replace(microsecond=0),
-            descripcion=descripcion,
-            estado="En Taller",
-            patente=vehiculo,
+        # ✅ NUEVO FLUJO:
+        # Creamos una SolicitudIngresoVehiculo en estado PENDIENTE
+        solicitud = SolicitudIngresoVehiculo.objects.create(
+            vehiculo=vehiculo,
+            chofer=empleado,          # quien está solicitando
             taller=taller,
-            rut=empleado,
-            rut_creador=empleado,
+            fecha_solicitada=ahora.date(),
+            estado="PENDIENTE",
+            # ⚠️ Si tu modelo tiene campo 'descripcion' / 'motivo',
+            #     puedes mapear 'descripcion' del formulario aquí.
+            # p.ej: descripcion=descripcion,
         )
-
-        vehiculo.estado = "En Taller"
-        vehiculo.ubicacion = taller.nombre
-        vehiculo.save()
 
         messages.success(
             request,
-            f"Vehículo {patente} ingresado al taller {taller.nombre}."
+            f"Solicitud de ingreso creada para el vehículo {patente} en el taller "
+            f"{taller.recinto.nombre}. Queda pendiente de asignación por el supervisor."
         )
 
         return redirect("ingreso-vehiculos")
@@ -174,47 +217,44 @@ def ingreso_vehiculos_page(request):
         "vehiculos": vehiculos,
     })
 
+
 # ==========================================================
 # 🛠️ ASIGNACIÓN DE TALLER (Supervisor)
-#   Ahora muestra SOLICITUDES de ingreso pendientes
-#   El approve/creación de OT se hace vía APIs JS
 # ==========================================================
 @login_required(login_url='inicio-sesion')
 @supervisor_only
 def asignacion_taller_page(request):
     supervisor = (
         Empleado.objects
-        .select_related("taller")
+        .select_related("recinto")
         .filter(usuario=request.user.username)
         .first()
     )
 
-    if not supervisor or not supervisor.taller:
+    if not supervisor or not supervisor.recinto:
         return render(request, "asignacion-taller.html", {
             "menu_active": "asignacion_taller",
             "supervisor": supervisor,
             "solicitudes": [],
             "mecanicos": [],
-            "error": "No se pudo determinar tu taller."
+            "error": "No se pudo determinar tu taller (recinto)."
         })
 
-    # Mecánicos del taller del supervisor
     mecanicos = (
         Empleado.objects
         .filter(
             cargo="MECANICO",
-            taller_id=supervisor.taller.taller_id,
+            recinto=supervisor.recinto,
             is_active=True,
         )
         .order_by("nombre")
     )
 
-    # 🔹 Solicitudes de ingreso PENDIENTES de este taller
     solicitudes = (
         SolicitudIngresoVehiculo.objects
         .select_related("vehiculo", "chofer", "taller")
         .filter(
-            taller_id=supervisor.taller.taller_id,
+            taller__recinto=supervisor.recinto,
             estado="PENDIENTE",
         )
         .order_by("fecha_solicitada", "creado_en")
@@ -226,3 +266,18 @@ def asignacion_taller_page(request):
         "solicitudes": solicitudes,
         "mecanicos": mecanicos,
     })
+
+
+# ==========================================================
+# 🚧 CONTROL DE ACCESO (GUARDIA DE RECINTO)
+#    Wrapper hacia la vista canónica en ordenestrabajo
+# ==========================================================
+@login_required(login_url='inicio-sesion')
+@guardia_only
+def control_acceso_page(request):
+    """
+    Wrapper para reutilizar la lógica centralizada de control de acceso
+    definida en ordenestrabajo.views_control_acceso.control_acceso_guardia,
+    manteniendo el nombre de vista y las restricciones de rol (guardia_only).
+    """
+    return control_acceso_guardia(request)

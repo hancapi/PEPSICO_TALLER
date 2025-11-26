@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Control de Acceso | Taller PepsiCo Chile{% endblock %}
+
+{% block content %}
+<div class="page-container fade-in">
+
+    {% if empleado %}
+    <!-- CABECERA -->
+    <div class="welcome-card mb-4">
+        <div class="welcome-content">
+            <div class="welcome-avatar">
+                {{ empleado.nombre|default:"?"|first|upper }}
+            </div>
+            <div class="welcome-text">
+                <h1 class="mb-1">Control de Acceso al Recinto</h1>
+                <p class="m-0">
+                    Guardia: <strong>{{ empleado.nombre }}</strong>
+                    {% if empleado.recinto %}
+                        — Recinto: <strong>{{ empleado.recinto.nombre }}</strong>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if error_global %}
+        <div class="alert alert-danger">{{ error_global }}</div>
+    {% endif %}
+
+    <!-- ============================
+         BUSCADOR DE PATENTE
+    ============================= -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">🔎 Buscar vehículo por patente</h5>
+            <form method="get" class="row g-2">
+                <div class="col-md-4">
+                    <input type="text"
+                           name="patente"
+                           class="form-control"
+                           placeholder="Ej: ABCD12"
+                           value="{{ form_busqueda.patente|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================
+         INFO VEHÍCULO / DESIGNACIÓN / OT
+    ============================= -->
+    {% if vehiculo %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">🚗 Información del vehículo</h5>
+
+            <p class="mb-1"><strong>Patente:</strong> {{ vehiculo.patente }}</p>
+            <p class="mb-1">
+                <strong>Modelo:</strong> {{ vehiculo.marca }} {{ vehiculo.modelo }}
+            </p>
+            <p class="mb-1">
+                <strong>Estado actual:</strong> {{ vehiculo.estado }}
+            </p>
+
+            {% if control_abierto %}
+                <p class="mb-1">
+                    <strong>Ubicación:</strong> Dentro del recinto (control abierto)
+                </p>
+            {% else %}
+                <p class="mb-1">
+                    <strong>Ubicación:</strong> Fuera del recinto (sin control abierto)
+                </p>
+            {% endif %}
+
+            <!-- Designación vigente -->
+            {% if designacion %}
+                <hr>
+                <h6 class="fw-bold mb-2">👤 Designación vigente</h6>
+                <p class="mb-1">
+                    <strong>Chofer designado:</strong>
+                    {{ designacion.empleado.rut }} — {{ designacion.empleado.nombre }}
+                </p>
+                <p class="mb-1">
+                    <strong>Inicio:</strong> {{ designacion.fecha_inicio }}
+                    {% if designacion.fecha_fin %}
+                        | <strong>Fin:</strong> {{ designacion.fecha_fin }}
+                    {% endif %}
+                </p>
+                <p class="mb-0">
+                    <strong>Estado:</strong> {{ designacion.estado }}
+                </p>
+            {% else %}
+                <hr>
+                <p class="text-muted mb-0">
+                    No hay designación activa registrada para este vehículo.
+                </p>
+            {% endif %}
+
+            <!-- Solicitud de ingreso (chofer que la hizo) -->
+            {% if solicitud_ingreso %}
+                <hr>
+                <h6 class="fw-bold mb-2">📝 Solicitud de ingreso</h6>
+                <p class="mb-1">
+                    <strong>Chofer que solicitó ingreso:</strong>
+                    {{ solicitud_ingreso.chofer.rut }} — {{ solicitud_ingreso.chofer.nombre }}
+                </p>
+                <p class="mb-1">
+                    <strong>Fecha solicitada:</strong>
+                    {{ solicitud_ingreso.fecha_solicitada|date:"d/m/Y" }}
+                </p>
+                <p class="mb-0">
+                    <strong>Taller:</strong>
+                    {{ solicitud_ingreso.taller.recinto.nombre }}
+                    {% if solicitud_ingreso.taller.nro_anden %}
+                        — Andén {{ solicitud_ingreso.taller.nro_anden }}
+                    {% endif %}
+                </p>
+            {% endif %}
+
+            <!-- OT más reciente -->
+            {% if ot %}
+                <hr>
+                <h6 class="fw-bold mb-2">🛠 Última Orden de Trabajo</h6>
+                <p class="mb-1">
+                    <strong>OT #:</strong> {{ ot.ot_id }}
+                    — <strong>Estado:</strong> {{ ot.estado }}
+                </p>
+                <p class="mb-1">
+                    <strong>Fecha ingreso:</strong> {{ ot.fecha_ingreso }}
+                    {% if ot.hora_ingreso %}
+                        — <strong>Hora:</strong> {{ ot.hora_ingreso }}
+                    {% endif %}
+                </p>
+                {% if ot.fecha_salida %}
+                    <p class="mb-0">
+                        <strong>Fecha salida:</strong> {{ ot.fecha_salida }}
+                    </p>
+                {% endif %}
+            {% endif %}
+
+            <!-- Control de acceso abierto -->
+            {% if control_abierto %}
+                <hr>
+                <h6 class="fw-bold mb-2">📌 Ingreso vigente</h6>
+                <p class="mb-1">
+                    <strong>Control #:</strong> {{ control_abierto.control_id }}
+                    — <strong>Fecha ingreso:</strong> {{ control_abierto.fecha_ingreso }}
+                </p>
+                <p class="mb-1">
+                    <strong>Guardia ingreso:</strong>
+                    {{ control_abierto.guardia_ingreso.rut }}
+                    — {{ control_abierto.guardia_ingreso.nombre }}
+                </p>
+                <p class="mb-1">
+                    <strong>Chofer registrado:</strong>
+                    {{ control_abierto.chofer.rut }} — {{ control_abierto.chofer.nombre }}
+                </p>
+                {% if control_abierto.forzado %}
+                    <p class="mb-0 text-danger">
+                        <strong>Operación forzada:</strong>
+                        {{ control_abierto.motivo_forzado }}
+                    </p>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ============================
+         MENSAJES GLOBALES ACCIÓN
+    ============================= -->
+    {% if entrada_error %}
+        <div class="alert alert-danger">{{ entrada_error|safe }}</div>
+    {% endif %}
+    {% if entrada_ok %}
+        <div class="alert alert-success">{{ entrada_ok|safe }}</div>
+    {% endif %}
+    {% if salida_error %}
+        <div class="alert alert-danger">{{ salida_error|safe }}</div>
+    {% endif %}
+    {% if salida_ok %}
+        <div class="alert alert-success">{{ salida_ok|safe }}</div>
+    {% endif %}
+
+    <!-- ============================
+         ACCIÓN DINÁMICA: ENTRADA / SALIDA
+    ============================= -->
+    {% if vehiculo %}
+        {% if not control_abierto %}
+        <!-- ENTRADA AL RECINTO -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">Entrada al recinto</h5>
+                <p class="text-muted mb-2">
+                    El vehículo se encuentra fuera del recinto. Registra el ingreso.
+                </p>
+
+                {% if solicitud_ingreso %}
+                    <p class="text-muted small mb-2">
+                        Sugerido: chofer que solicitó ingreso
+                        <strong>{{ solicitud_ingreso.chofer.rut }}</strong>
+                        — {{ solicitud_ingreso.chofer.nombre }}
+                    </p>
+                {% elif designacion %}
+                    <p class="text-muted small mb-2">
+                        Sugerido: chofer designado
+                        <strong>{{ designacion.empleado.rut }}</strong>
+                        — {{ designacion.empleado.nombre }}
+                    </p>
+                {% endif %}
+
+                <!-- Botón que abre el modal -->
+                <button type="button"
+                        class="btn btn-primary w-100"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalEntradaRecinto">
+                    Registrar ingreso
+                </button>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- SALIDA DEL RECINTO -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">Salida del recinto</h5>
+                <p class="text-muted mb-2">
+                    El vehículo tiene un ingreso abierto. Registra la salida.
+                </p>
+
+                <form method="post" class="mt-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="salida">
+
+                    <!-- Patente (solo lectura) -->
+                    <div class="mb-3">
+                        <label for="salida_patente" class="form-label">Patente</label>
+                        <input type="text"
+                               class="form-control"
+                               id="salida_patente"
+                               name="patente"
+                               value="{{ form_salida.patente|default:vehiculo.patente }}"
+                               readonly>
+                    </div>
+
+                    <p class="text-muted small">
+                        Solo se permite salida automática si la OT está en:
+                        <strong>{{ allowed_exit_states|join:", " }}</strong>.
+                    </p>
+
+                    {% if mostrar_forzar_salida %}
+                        <!-- Bloque de forzado solo cuando la OT NO está en estado de liberación -->
+                        <div class="form-check mb-2">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="salida_forzar"
+                                   name="forzar"
+                                   {% if form_salida.forzar %}checked{% endif %}>
+                            <label class="form-check-label" for="salida_forzar">
+                                Forzar operación (dejando traza)
+                            </label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="salida_motivo" class="form-label">
+                                Motivo de forzado (obligatorio si marca Forzar)
+                            </label>
+                            <textarea class="form-control"
+                                      id="salida_motivo"
+                                      name="motivo_forzado"
+                                      rows="2">{{ form_salida.motivo_forzado }}</textarea>
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-success w-100">
+                        Registrar salida
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-warning">
+        No se pudo cargar la información del empleado. Verifique su configuración de usuario.
+    </div>
+    {% endif %}
+
+</div>
+
+{% if vehiculo and not control_abierto %}
+<!-- ======================================================
+     MODAL: REGISTRAR ENTRADA AL RECINTO
+====================================================== -->
+<div class="modal fade" id="modalEntradaRecinto" tabindex="-1" aria-labelledby="modalEntradaRecintoLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="entrada">
+        <input type="hidden" name="patente" value="{{ vehiculo.patente }}">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEntradaRecintoLabel">
+            Registrar ingreso — {{ vehiculo.patente }}
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body">
+          <!-- RUT chofer -->
+          <div class="mb-3">
+            <label for="rut_chofer_modal" class="form-label">RUT del chofer</label>
+            <input type="text"
+                   class="form-control"
+                   id="rut_chofer_modal"
+                   name="rut_chofer"
+                   placeholder="Ej: 11111111-1 (ingresar chofer que efectivamente entra)"
+                   value="{% if form_entrada.rut_chofer %}{{ form_entrada.rut_chofer }}{% elif solicitud_ingreso %}{{ solicitud_ingreso.chofer.rut }}{% elif designacion %}{{ designacion.empleado.rut }}{% endif %}">
+          </div>
+
+          <!-- Forzar -->
+          <div class="form-check mb-2">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="entrada_forzar_modal"
+                   name="forzar"
+                   {% if form_entrada.forzar %}checked{% endif %}>
+            <label class="form-check-label" for="entrada_forzar_modal">
+              Forzar operación (dejando traza)
+            </label>
+          </div>
+
+          <!-- Motivo forzado -->
+          <div class="mb-3">
+            <label for="entrada_motivo_modal" class="form-label">
+              Motivo de forzado (obligatorio si marca Forzar)
+            </label>
+            <textarea class="form-control"
+                      id="entrada_motivo_modal"
+                      name="motivo_forzado"
+                      rows="2">{{ form_entrada.motivo_forzado }}</textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit"
+                  class="btn btn-primary">Registrar ingreso</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if mostrar_forzar_entrada %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("modalEntradaRecinto");
+    if (modalEl && window.bootstrap) {
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

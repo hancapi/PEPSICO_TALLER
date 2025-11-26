@@ -1,6 +1,15 @@
 # ordenestrabajo/admin.py
 from django.contrib import admin
-from .models import OrdenTrabajo, Pausa, SolicitudIngresoVehiculo
+from .models import (
+    OrdenTrabajo,
+    Pausa,
+    SolicitudIngresoVehiculo,
+    Incidente,
+    Llave,
+    DesignacionVehicular,
+    Repuesto,
+    ControlAcceso,
+)
 
 # ============================================================
 # ORDEN DE TRABAJO
@@ -10,7 +19,7 @@ class OrdenTrabajoAdmin(admin.ModelAdmin):
     list_display = (
         'ot_id',
         'patente',
-        'taller',
+        'recinto',          # antes: 'taller'
         'estado',
         'fecha_ingreso',
         'hora_ingreso',
@@ -19,7 +28,7 @@ class OrdenTrabajoAdmin(admin.ModelAdmin):
     )
     list_editable = ('estado',)
 
-    list_filter = ('estado', 'taller', 'fecha_ingreso')
+    list_filter = ('estado', 'recinto', 'fecha_ingreso')  # antes: 'taller'
     search_fields = (
         'ot_id',
         'patente__patente',
@@ -57,3 +66,72 @@ class SolicitudIngresoVehiculoAdmin(admin.ModelAdmin):
     list_filter = ("estado", "taller", "fecha_solicitada")
     search_fields = ("vehiculo__patente", "chofer__nombre", "chofer__rut")
     ordering = ("-creado_en",)
+
+
+# ============================================================
+# INCIDENTES
+# ============================================================
+@admin.register(Incidente)
+class IncidenteAdmin(admin.ModelAdmin):
+    list_display = ("incidente_id", "fecha", "vehiculo", "empleado")
+    list_filter = ("fecha",)
+    search_fields = ("vehiculo__patente", "empleado__rut", "descripcion")
+
+
+# ============================================================
+# LLAVES
+# ============================================================
+@admin.register(Llave)
+class LlaveAdmin(admin.ModelAdmin):
+    list_display = ("llave_id", "vehiculo", "empleado", "estado")
+    list_filter = ("estado",)
+    search_fields = ("vehiculo__patente", "empleado__rut")
+
+
+# ============================================================
+# DESIGNACIÓN VEHICULAR
+# ============================================================
+@admin.register(DesignacionVehicular)
+class DesignacionVehicularAdmin(admin.ModelAdmin):
+    list_display = (
+        "prestamo_id",
+        "vehiculo",
+        "empleado",
+        "fecha_inicio",
+        "fecha_fin",
+        "estado",
+    )
+    list_filter = ("estado", "fecha_inicio", "fecha_fin")
+    search_fields = ("vehiculo__patente", "empleado__rut")
+
+
+# ============================================================
+# REPUESTOS
+# ============================================================
+@admin.register(Repuesto)
+class RepuestoAdmin(admin.ModelAdmin):
+    list_display = ("repuesto_id", "nombre", "cantidad", "orden_trabajo")
+    search_fields = ("nombre", "orden_trabajo__ot_id")
+
+
+# ============================================================
+# CONTROL DE ACCESO
+# ============================================================
+@admin.register(ControlAcceso)
+class ControlAccesoAdmin(admin.ModelAdmin):
+    list_display = (
+        "control_id",
+        "vehiculo",
+        "fecha_ingreso",
+        "fecha_salida",
+        "guardia_ingreso",
+        "guardia_salida",
+        "chofer",
+    )
+    list_filter = ("fecha_ingreso", "fecha_salida")
+    search_fields = (
+        "vehiculo__patente",
+        "guardia_ingreso__rut",
+        "guardia_salida__rut",
+        "chofer__rut",
+    )

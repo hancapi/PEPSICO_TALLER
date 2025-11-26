@@ -33,6 +33,9 @@ def _ok_db() -> bool:
 
 def _empleado_payload(emp: Empleado) -> dict:
     """Serializa un Empleado para envío al frontend."""
+    # Usamos recinto, pero mantenemos la clave 'taller' por compatibilidad
+    recinto = getattr(emp, "recinto", None)
+
     return {
         "rut": emp.rut,
         "usuario": emp.usuario,
@@ -41,11 +44,15 @@ def _empleado_payload(emp: Empleado) -> dict:
         "region": emp.region or "No especificada",
         "horario": emp.horario or "No especificado",
         "disponibilidad": int(emp.disponibilidad),
+
+        # Antes esto era realmente el TALLER; ahora exponemos el RECINTO
+        # pero conservando la estructura para no romper los clientes.
         "taller": {
-            "taller_id": emp.taller_id,
-            "nombre": emp.taller.nombre if emp.taller else "Sin taller",
-            "ubicacion": emp.taller.ubicacion if emp.taller else "-",
+            "taller_id": recinto.recinto_id if recinto else None,
+            "nombre": recinto.nombre if recinto else "Sin recinto",
+            "ubicacion": recinto.ubicacion if recinto else "-",
         },
+
         "is_staff": bool(emp.is_staff),
         "is_active": bool(emp.is_active),
         "is_superuser": bool(emp.is_superuser),
@@ -103,7 +110,8 @@ def login_view(request):
     login(request, user)
 
     try:
-        emp = Empleado.objects.select_related('taller').get(usuario=username)
+        # ANTES: select_related('taller')
+        emp = Empleado.objects.select_related('recinto').get(usuario=username)
     except Empleado.DoesNotExist:
         logger.warning(f"Empleado no encontrado para usuario {username}")
         return JsonResponse({'success': False, 'message': 'Empleado no encontrado'}, status=404)

@@ -1,31 +1,33 @@
-#🚀 Iniciando entorno de desarrollo PepsiCo Taller...
+# 🚀 Iniciando entorno de desarrollo PepsiCo Taller (Windows)
+
 # 1. Crear entorno virtual si no existe
 python -m venv env
 
 # 2. Activar entorno virtual
-.\env\Scripts\Activate
+env\Scripts\activate
 
 # 3. Instalar dependencias
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Aplicar migraciones
-python manage.py makemigrations autenticacion
-python manage.py makemigrations vehiculos
-python manage.py makemigrations talleres
-python manage.py makemigrations ordenestrabajo
-python manage.py makemigrations reportes
-python manage.py makemigrations documentos
-python manage.py makemigrations utils
+# 4. (IMPORTANTE) Crear/actualizar la base de datos MySQL
+#    - Conectarse a MySQL y ejecutar el script SQL de tablas:
+#      -> script_schema_pepsico.sql  (recinto, empleados, vehiculos, ordenestrabajo, pausas, etc.)
+#    La BD se administra fuera de Django (managed = False en la mayoría de los modelos).
+
+#Modificar .env con credenciales de BD
+# 5. Aplicar migraciones de Django (solo apps internas + chat + documentos)
 python manage.py migrate
 
-# 5. Levantar servidor
+# 6. Crear superusuario Django (para acceder a /admin)
+python manage.py createsuperuser
+
+# 7. Levantar servidor de desarrollo
 python manage.py runserver
 
-# 6. crear superusuario
-python manage.py createsuperuser 
 
-# Iniciando entorno de desarrollo PepsiCo Taller (macOS)
+
+# 🚀 Iniciando entorno de desarrollo PepsiCo Taller (macOS / Linux)
 
 # 1. Crear entorno virtual si no existe
 python3 -m venv env
@@ -37,19 +39,16 @@ source env/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# 4. Aplicar migraciones
-python manage.py makemigrations autenticacion
-python manage.py makemigrations vehiculos
-python manage.py makemigrations talleres
-python manage.py makemigrations ordenestrabajo
-python manage.py makemigrations reportes
-python manage.py makemigrations documentos
-python manage.py makemigrations utils
+# 4. (IMPORTANTE) Crear/actualizar la base de datos MySQL
+#    - Conectarse a MySQL y ejecutar el script SQL de tablas:
+#      -> script_schema_pepsico.sql  (recinto, empleados, vehiculos, ordenestrabajo, pausas, etc.)
+#    La BD se administra fuera de Django (managed = False en la mayoría de los modelos).
+
+# 5. Aplicar migraciones de Django (solo apps internas + chat + documentos)
 python manage.py migrate
 
-# 5. Levantar servidor
-python manage.py runserver
-
-# 6. Crear superusuario (ejecuta cuando quieras)
+# 6. Crear superusuario Django (para acceder a /admin)
 python manage.py createsuperuser
 
+# 7. Levantar servidor de desarrollo
+python manage.py runserver

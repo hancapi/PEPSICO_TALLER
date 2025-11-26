@@ -4,22 +4,7 @@ from django.contrib.auth.models import User, Group
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-
-# ===========================================
-# MODELO: Taller (tabla existente en MySQL)
-# ===========================================
-class Taller(models.Model):
-    class Meta:
-        managed = False
-        db_table = 'talleres'
-
-    taller_id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100)
-    ubicacion = models.CharField(max_length=100)
-    encargado_taller = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.nombre
+from talleres.models import Recinto  # usamos Recinto (FK recinto_id)
 
 
 # ===========================================
@@ -32,6 +17,7 @@ class Empleado(models.Model):
         ('SUPERVISOR', 'Supervisor'),
         ('MECANICO', 'Mecánico'),
         ('ADMINISTRATIVO', 'Administrativo'),
+        ('GUARDIA', 'Guardia'),      
     ]
 
     # ---- Choices: Regiones de Chile ----
@@ -68,13 +54,40 @@ class Empleado(models.Model):
 
     rut = models.CharField(primary_key=True, max_length=12)
     nombre = models.CharField(max_length=100)
-    cargo = models.CharField(max_length=20, choices=CARGOS)
-    region = models.CharField(max_length=10, choices=REGIONES_CHILE, null=True, blank=True)
-    horario = models.CharField(max_length=20, choices=HORARIOS, default='08:00-17:00')
+
+    # En BD: cargo VARCHAR(50)
+    cargo = models.CharField(
+        max_length=50,
+        choices=CARGOS,
+    )
+
+    # En BD: region VARCHAR(50)
+    region = models.CharField(
+        max_length=50,
+        choices=REGIONES_CHILE,
+        null=True,
+        blank=True,
+    )
+
+    # En BD: horario VARCHAR(100)
+    horario = models.CharField(
+        max_length=100,
+        choices=HORARIOS,
+        default='08:00-17:00',
+    )
+
     disponibilidad = models.BooleanField(default=True)
     password = models.CharField(max_length=128)
     usuario = models.CharField(max_length=45, unique=True)
-    taller = models.ForeignKey(Taller, on_delete=models.RESTRICT, db_column='taller_id')
+
+    # 🔹 Empleado pertenece a un RECINTO (FK recinto_id)
+    recinto = models.ForeignKey(
+        Recinto,
+        on_delete=models.RESTRICT,
+        db_column='recinto_id',
+        related_name='empleados',
+    )
+
     last_login = models.DateTimeField(null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -90,7 +103,6 @@ class Empleado(models.Model):
         try:
             return User.objects.get(username=self.usuario)
         except User.DoesNotExist:
-        # no destruir nada si no existe usuario sombra
             return None
 
     @property

@@ -15,7 +15,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
         'nombre',
         'cargo',
         'region',
-        'taller',
+        'recinto',      # antes: 'taller'
         'is_active',
         'is_staff',
         'is_superuser',
@@ -26,7 +26,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
     list_editable = (
         'cargo',
         'region',
-        'taller',
+        'recinto',      # antes: 'taller'
         'is_active',
     )
 
@@ -36,7 +36,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
     list_filter = (
         'cargo',
         'region',
-        'taller',
+        'recinto',      # antes: 'taller'
         'is_active',
         'is_staff',
         'is_superuser',
@@ -62,7 +62,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
     # ==========================================================================================
     fieldsets = (
         ("Información Personal", {
-            "fields": ("rut", "nombre", "usuario", "password", "cargo", "region", "taller")
+            "fields": ("rut", "nombre", "usuario", "password", "cargo", "region", "recinto")
         }),
         ("Permisos", {
             "fields": ("is_active", "is_staff", "is_superuser"),

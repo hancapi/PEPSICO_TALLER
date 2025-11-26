@@ -89,6 +89,7 @@
   {% endif %}
 </div>
 
+{% if not acceso_denegado %}
 <!-- ============================
      Chart.js
 ============================= -->
@@ -110,15 +111,26 @@ document.addEventListener("DOMContentLoaded", () => {
   // ====================================================
   async function loadKPIs() {
     try {
-      const res = await fetch("/reportes/api/resumen/");
+      const res = await fetch("/reportes/api/resumen/", {
+        credentials: "same-origin"
+      });
       const data = await res.json();
 
-      if (!data.success) return;
+      if (!res.ok || !data.success) {
+        console.warn("Error KPIs:", data.message || res.status);
+        return;
+      }
 
-      document.getElementById("kpi_vehiculos_totales").textContent = data.data.vehiculos_totales;
-      document.getElementById("kpi_vehiculos_taller").textContent = data.data.vehiculos_en_taller;
-      document.getElementById("kpi_ordenes_activas").textContent = data.data.ordenes_activas;
-      document.getElementById("kpi_empleados").textContent = data.data.empleados_activos;
+      const d = data.data || {};
+      const elVehTot = document.getElementById("kpi_vehiculos_totales");
+      const elVehTal = document.getElementById("kpi_vehiculos_taller");
+      const elOTAct  = document.getElementById("kpi_ordenes_activas");
+      const elEmp    = document.getElementById("kpi_empleados");
+
+      if (elVehTot) elVehTot.textContent = d.vehiculos_totales ?? "0";
+      if (elVehTal) elVehTal.textContent = d.vehiculos_en_taller ?? "0";
+      if (elOTAct)  elOTAct.textContent  = d.ordenes_activas ?? "0";
+      if (elEmp)    elEmp.textContent    = d.empleados_activos ?? "0";
 
     } catch (e) {
       console.error("Error KPIs", e);
@@ -130,61 +142,73 @@ document.addEventListener("DOMContentLoaded", () => {
   // ====================================================
   async function loadTalleres() {
     try {
-      const res = await fetch("/reportes/api/talleres/");
+      const res = await fetch("/reportes/api/talleres/", {
+        credentials: "same-origin"
+      });
       const data = await res.json();
-      if (!data.success) return;
+      if (!res.ok || !data.success) {
+        console.warn("Error talleres:", data.message || res.status);
+        return;
+      }
 
-      const labels = data.items.map(t => t.nombre);
-      const vehiculos = data.items.map(t => t.vehiculos_total);
-      const otsPend = data.items.map(t => t.ots_pendientes);
-      const otsProc = data.items.map(t => t.ots_en_proceso);
-      const otsFin = data.items.map(t => t.ots_finalizadas);
+      const items = Array.isArray(data.items) ? data.items : [];
 
-      // === Gráfico Vehículos por Taller ===
-      new Chart(document.getElementById("chartVehiculosTaller"), {
-        type: "bar",
-        data: {
-          labels: labels,
-          datasets: [{
-            label: "Vehículos",
-            data: vehiculos,
-            backgroundColor: "#007bff88",
-            borderColor: "#007bff",
-            borderWidth: 1
-          }]
-        }
-      });
+      const labels    = items.map(t => t.nombre);
+      const vehiculos = items.map(t => t.vehiculos_total);
+      const otsPend   = items.map(t => t.ots_pendientes);
+      const otsProc   = items.map(t => t.ots_en_proceso);
+      const otsFin    = items.map(t => t.ots_finalizadas);
 
-      // === Gráfico OTs ===
-      new Chart(document.getElementById("chartOTsTaller"), {
-        type: "bar",
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "Pendiente",
-              data: otsPend,
-              backgroundColor: "#ffc107aa",
-              borderColor: "#ffc107",
+      const ctxVeh = document.getElementById("chartVehiculosTaller");
+      const ctxOTs = document.getElementById("chartOTsTaller");
+
+      if (ctxVeh) {
+        new Chart(ctxVeh, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Vehículos",
+              data: vehiculos,
+              backgroundColor: "#007bff88",
+              borderColor: "#007bff",
               borderWidth: 1
-            },
-            {
-              label: "En Proceso",
-              data: otsProc,
-              backgroundColor: "#17a2b8aa",
-              borderColor: "#17a2b8",
-              borderWidth: 1
-            },
-            {
-              label: "Finalizado",
-              data: otsFin,
-              backgroundColor: "#28a745aa",
-              borderColor: "#28a745",
-              borderWidth: 1
-            }
-          ]
-        }
-      });
+            }]
+          }
+        });
+      }
+
+      if (ctxOTs) {
+        new Chart(ctxOTs, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Pendiente",
+                data: otsPend,
+                backgroundColor: "#ffc107aa",
+                borderColor: "#ffc107",
+                borderWidth: 1
+              },
+              {
+                label: "En Proceso",
+                data: otsProc,
+                backgroundColor: "#17a2b8aa",
+                borderColor: "#17a2b8",
+                borderWidth: 1
+              },
+              {
+                label: "Finalizado",
+                data: otsFin,
+                backgroundColor: "#28a745aa",
+                borderColor: "#28a745",
+                borderWidth: 1
+              }
+            ]
+          }
+        });
+      }
 
     } catch (e) {
       console.error("Error talleres", e);
@@ -196,14 +220,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // ====================================================
   async function loadTiempos() {
     try {
-      const res = await fetch("/reportes/api/tiempos/");
+      const res = await fetch("/reportes/api/tiempos/", {
+        credentials: "same-origin"
+      });
       const data = await res.json();
-      if (!data.success) return;
+      if (!res.ok || !data.success) {
+        console.warn("Error tiempos:", data.message || res.status);
+        return;
+      }
 
-      const labels = Object.values(data.por_taller).map(t => t.taller);
-      const valores = Object.values(data.por_taller).map(t => t.promedio_dias || 0);
+      const porTaller = data.por_taller || {};
+      const items = Object.values(porTaller);
 
-      new Chart(document.getElementById("chartTiempos"), {
+      const labels  = items.map(t => t.taller);
+      const valores = items.map(t => t.promedio_dias || 0);
+
+      const ctx = document.getElementById("chartTiempos");
+      if (!ctx) return;
+
+      new Chart(ctx, {
         type: "line",
         data: {
           labels: labels,
@@ -226,5 +261,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+{% endif %}
 
 {% endblock %}

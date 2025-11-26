@@ -2,9 +2,8 @@
 (() => {
   console.log("✅ documentos.js cargado");
 
-  const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  const API_BASE = isLocal ? "http://localhost:8000/api" : "https://testeorepocaps.loca.lt/api";
-  const API_DOCS = `${API_BASE}/documentos`;
+  // Usamos siempre el mismo origen (mismo host/puerto donde corre Django)
+  const API_DOCS = "/api/documentos";
 
   /**
    * Sube un documento al backend.
@@ -22,7 +21,11 @@
     if (otId) fd.append("ot_id", otId);
     if (patente) fd.append("patente", patente);
 
-    const res = await fetch(`${API_DOCS}/upload/`, { method: "POST", body: fd });
+    const res = await fetch(`${API_DOCS}/upload/`, {
+      method: "POST",
+      body: fd,
+      credentials: "same-origin",
+    });
     const data = await res.json();
     if (!res.ok || !data.success) {
       throw new Error(data.message || `Error HTTP ${res.status}`);
@@ -39,7 +42,9 @@
     if (patente) params.append("patente", patente);
     if (!otId && !patente) throw new Error("Debe indicar ot_id o patente");
 
-    const res = await fetch(`${API_DOCS}/?${params.toString()}`);
+    const res = await fetch(`${API_DOCS}/?${params.toString()}`, {
+      credentials: "same-origin",
+    });
     const data = await res.json();
     if (!res.ok || !data.success) {
       throw new Error(data.message || `Error HTTP ${res.status}`);

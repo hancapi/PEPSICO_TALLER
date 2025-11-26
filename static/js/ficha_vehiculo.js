@@ -158,7 +158,9 @@
 
         try {
             const url = `/vehiculos/api/ficha/?patente=${encodeURIComponent(patente)}`;
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                credentials: "same-origin",
+            });
             const data = await res.json();
 
             if (!data.success) {
@@ -186,8 +188,6 @@
 
             // KPIs
             k_ots.textContent = data.kpis.ots;
-            k_inc.textContent = data.kpis.incidentes ?? 0;
-            k_pres.textContent = data.kpis.prestamos ?? 0;
             k_llave.textContent = data.kpis.llave ?? 0;
 
             // OT actual
@@ -242,7 +242,9 @@
         const url = `/api/documentos/?ot_id=${otId || ""}&patente=${patente}`;
 
         try {
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                credentials: "same-origin",
+            });
             const data = await res.json();
 
             if (!data.success) {
@@ -414,7 +416,8 @@
             const res = await fetch(`/api/documentos/upload/`, {
                 method: "POST",
                 body: fd,
-                headers: { "X-CSRFToken": csrftoken }
+                headers: { "X-CSRFToken": csrftoken },
+                credentials: "same-origin",
             });
 
             const data = await res.json();
@@ -467,7 +470,8 @@
             const res = await fetch("/api/ordenestrabajo/estado/cambiar/", {
                 method: "POST",
                 body: fd,
-                headers: { "X-CSRFToken": csrftoken }
+                headers: { "X-CSRFToken": csrftoken },
+                credentials: "same-origin",
             });
 
             const data = await res.json();
@@ -493,7 +497,9 @@
         const url = `/vehiculos/api/ficha/ots/?patente=${encodeURIComponent(patente)}`;
 
         try {
-            const res = await fetch(url);
+            const res = await fetch(url, {
+                credentials: "same-origin",
+            });
             const data = await res.json();
 
             timeline.innerHTML = "";

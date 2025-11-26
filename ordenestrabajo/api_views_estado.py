@@ -26,9 +26,9 @@ def api_cambiar_estado(request):
     """
     Cambia el estado de la última OT ACTIVA asociada a una patente.
 
-    Reglas de transición:
+    Reglas de transición principales:
 
-    - Pendiente  -> Recibida
+    - Pendiente  -> En Taller  (RECIBIR vehículo; requiere que el guardia lo haya ingresado al recinto)
     - Recibida   -> En Proceso, Pausado
     - En Taller  -> En Proceso, Pausado
     - En Proceso -> Pausado, Finalizado, No Reparable, Sin Repuestos
@@ -90,6 +90,7 @@ def api_cambiar_estado(request):
             patente_id=patente,
             estado__in=ESTADOS_ACTIVOS,
         )
+        .select_related("patente")
         .order_by("-fecha_ingreso", "-hora_ingreso")
         .first()
     )
@@ -128,12 +129,12 @@ def api_cambiar_estado(request):
     #  Matriz de transiciones
     # =============================
     TRANSICIONES_VALIDAS = {
-        "Pendiente": ["Recibida"],
+        # 👉 ahora sí se permite Pendiente -> En Taller (RECIBIR),
+        #    pero validaremos además que el vehículo esté En Recinto.
+        "Pendiente": ["En Taller"],
         "Recibida": ["En Proceso", "Pausado"],
         "En Taller": ["En Proceso", "Pausado"],
-        # Desde En Proceso también puede ir a No Reparable / Sin Repuestos
         "En Proceso": ["Pausado", "Finalizado", "No Reparable", "Sin Repuestos"],
-        # Desde Pausado: NO puede ir a Finalizado
         "Pausado": ["En Taller", "En Proceso", "No Reparable", "Sin Repuestos"],
     }
 
@@ -146,6 +147,24 @@ def api_cambiar_estado(request):
         )
 
     # =============================
+    #  Regla extra:
+    #  Pendiente -> En Taller SOLO si el vehículo está dentro del recinto
+    #  (En Recinto) o, por compatibilidad, ya En Taller.
+    # =============================
+    if ot.estado == "Pendiente" and nuevo_estado == "En Taller":
+        if veh.estado not in ["En Recinto", "En Taller"]:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": (
+                        "No se puede recibir el vehículo en taller porque aún no ha sido "
+                        "ingresado al recinto por el guardia (estado del vehículo: "
+                        f"{veh.estado})."
+                    ),
+                }
+            )
+
+    # =============================
     #  Actualizar OT y Vehículo
     # =============================
     ot.estado = nuevo_estado
@@ -154,7 +173,14 @@ def api_cambiar_estado(request):
     if comentario:
         base = (ot.descripcion or "").rstrip()
         prefix = "\n" if base else ""
-        ot.descripcion = f"{base}{prefix}{autor_tag} {comentario}"
+        new_desc = f"{base}{prefix}{autor_tag} {comentario}"
+
+        # 🔐 Truncar para no reventar el max_length de la columna
+        max_len = OrdenTrabajo._meta.get_field("descripcion").max_length
+        if max_len:
+            new_desc = new_desc[:max_len]
+
+        ot.descripcion = new_desc
 
     # Estados finales cierran la OT
     if nuevo_estado in ESTADOS_FINALES:

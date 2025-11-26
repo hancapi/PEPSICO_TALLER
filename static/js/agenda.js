@@ -1,7 +1,21 @@
+// static/js/agenda.js
 (function () {
-    const fechaInput = document.getElementById("inputFecha");
-    const btnBuscar = document.getElementById("btnBuscarSlots");
+    const API_BASE = "/api/ordenestrabajo";
+
+    const fechaInput     = document.getElementById("inputFecha");
+    const btnBuscar      = document.getElementById("btnBuscarSlots");
     const slotsContainer = document.getElementById("slotsContainer");
+
+    // ==========================
+    // Helpers
+    // ==========================
+    function normalizePatente(value) {
+        if (!value) return "";
+        return value
+            .toUpperCase()
+            .replace(/\s+/g, "")      // quita espacios
+            .replace(/[.\-]/g, "");   // quita puntos y guiones
+    }
 
     function showSlots(slots) {
         slotsContainer.innerHTML = "";
@@ -32,54 +46,73 @@
     }
 
     async function reservarSlot(e) {
-        const hora = e.target.dataset.hora;
+        const hora  = e.target.dataset.hora;
         const fecha = fechaInput.value;
 
-        const patente = prompt("Ingrese patente del vehículo:");
+        let patente = prompt("Ingrese patente del vehículo:");
         if (!patente) return;
+
+        patente = normalizePatente(patente);
+
+        if (!patente) {
+            alert("Patente inválida.");
+            return;
+        }
 
         try {
             const fd = new FormData();
-            fd.set("patente", patente.toUpperCase());
+            fd.set("patente", patente);
             fd.set("fecha", fecha);
-            fd.set("hora", hora);
-            fd.set("taller_id", window.TALLER_ID); // Se injecta desde backend
+            fd.set("hora", hora);              // el backend puede ignorarla si no la usa
+            fd.set("taller_id", window.TALLER_ID); // se inyecta desde backend
 
-            const res = await fetch("/ordenestrabajo/api/ingresos/create/", {
+            const res = await fetch(`${API_BASE}/ingresos/create/`, {
                 method: "POST",
-                body: fd
+                body: fd,
+                credentials: "same-origin",
             });
 
             const data = await res.json();
             if (!data.success) {
-                alert("Error: " + data.message);
+                alert("Error: " + (data.message || "No se pudo programar el ingreso."));
                 return;
             }
 
-            alert("Ingreso programado correctamente.");
+            alert(data.message || "Ingreso programado correctamente.");
             btnBuscar.click();
 
         } catch (err) {
+            console.error("Error en reservarSlot:", err);
             alert("Error de red.");
         }
     }
 
-    btnBuscar.addEventListener("click", async () => {
+    async function buscarSlots() {
         const fecha = fechaInput.value;
-        if (!fecha) return alert("Seleccione una fecha");
+        if (!fecha) {
+            alert("Seleccione una fecha");
+            return;
+        }
 
         try {
-            const res = await fetch(`/ordenestrabajo/api/agenda/slots/?fecha=${fecha}&taller_id=${window.TALLER_ID}`);
+            const res = await fetch(
+                `${API_BASE}/agenda/slots/?fecha=${encodeURIComponent(fecha)}&taller_id=${encodeURIComponent(window.TALLER_ID)}`
+            );
             const data = await res.json();
 
             if (!data.success) {
-                alert("Error: " + data.message);
+                alert("Error: " + (data.message || "No se pudo cargar los horarios."));
                 return;
             }
 
             showSlots(data.slots);
         } catch (err) {
+            console.error("Error al cargar horarios:", err);
             alert("Error al cargar horarios");
         }
-    });
+    }
+
+    if (btnBuscar) {
+        btnBuscar.addEventListener("click", buscarSlots);
+    }
 })();

@@ -3,16 +3,23 @@
 async function loadDashboardStats() {
     try {
         // Ruta correcta según autenticacion/urls.py
-        const res = await fetch('/autenticacion/dashboard-stats/');
+        const res = await fetch('/autenticacion/dashboard-stats/', {
+            credentials: "same-origin",
+        });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
         const data = await res.json();
         const k = data.kpis || {};
 
-        document.getElementById("statVehiculos").textContent = k.total_vehiculos ?? 0;
-        document.getElementById("statTaller").textContent = k.en_taller ?? 0;
-        document.getElementById("statProceso").textContent = k.en_proceso ?? 0;
-        document.getElementById("statEmpleados").textContent = k.total_empleados ?? 0;
+        const elVeh   = document.getElementById("statVehiculos");
+        const elTall  = document.getElementById("statTaller");
+        const elProc  = document.getElementById("statProceso");
+        const elEmpl  = document.getElementById("statEmpleados");
+
+        if (elVeh)  elVeh.textContent  = k.total_vehiculos ?? 0;
+        if (elTall) elTall.textContent = k.en_taller ?? 0;
+        if (elProc) elProc.textContent = k.en_proceso ?? 0;
+        if (elEmpl) elEmpl.textContent = k.total_empleados ?? 0;
 
     } catch (err) {
         console.error("❌ Error al cargar stats del dashboard:", err);

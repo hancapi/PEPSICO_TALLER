@@ -15,11 +15,13 @@ TIPO_CHOICES = [
 # Estados reales usados por la plataforma
 ESTADO_VEHICULO_CHOICES = [
     ("Disponible", "Disponible"),
+    ("En Recinto", "En Recinto"),      
     ("En Taller", "En Taller"),
     ("En Proceso", "En Proceso"),
     ("Pausado", "Pausado"),
     ("Fuera de Servicio", "Fuera de Servicio"),
 ]
+
 
 UBICACION_CHOICES = [
     ("Santiago", "Santiago"),
