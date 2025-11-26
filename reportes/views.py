@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 
 from vehiculos.models import Vehiculo
-from talleres.models import Taller
+from talleres.models import Taller, Recinto
 from ordenestrabajo.models import OrdenTrabajo
 from autenticacion.models import Empleado
 from autenticacion.roles import supervisor_only
@@ -16,7 +16,7 @@ from autenticacion.roles import supervisor_only
 # ==============================================================
 # 🔹 Página HTML: Dashboard de Reportes (gráficos)
 # ==============================================================
-@login_required(login_url='/inicio-sesion/')
+@login_required(login_url="/inicio-sesion/")
 @supervisor_only
 def reportes_page(request):
     return render(request, "reportes.html", {
@@ -28,7 +28,7 @@ def reportes_page(request):
 # 🔹 Página HTML: Reporte de Órdenes de Trabajo (CU07)
 #     /reportes/ordenes-trabajo/
 # ==============================================================
-@login_required(login_url='/inicio-sesion/')
+@login_required(login_url="/inicio-sesion/")
 @supervisor_only
 def reportes_ot_page(request):
     """
@@ -37,9 +37,14 @@ def reportes_ot_page(request):
       - /reportes/api/summary/
       - /reportes/api/ots/
     y el JS: static/js/reportes_ot.js
+
+    El combo de "Taller" se alimenta con Recintos,
+    porque OrdenTrabajo.recinto es el FK real.
     """
     estados = [choice[0] for choice in OrdenTrabajo.ESTADO_OT_CHOICES]
-    talleres = Taller.objects.all().order_by("nombre")
+
+    # Usamos Recinto en vez de Taller
+    talleres = Recinto.objects.all().order_by("nombre")
 
     return render(request, "reportes_ot.html", {
         "menu_active": "reportes",
@@ -73,7 +78,7 @@ def _date_range(request):
 # ==============================================================
 # 🟦 API: SUMMARY (usada por reportes_ot.js)
 # ==============================================================
-@login_required(login_url='/inicio-sesion/')
+@login_required(login_url="/inicio-sesion/")
 @supervisor_only
 def api_summary(request):
     dfrom, dto = _date_range(request)
@@ -83,7 +88,7 @@ def api_summary(request):
 
     ordenes_activas = OrdenTrabajo.objects.filter(
         fecha_ingreso__range=(dfrom, dto),
-        estado__in=["Pendiente", "En Proceso"]
+        estado__in=["Pendiente", "En Proceso"],
     ).count()
 
     empleados_activos = Empleado.objects.filter(is_active=True).count()
@@ -95,14 +100,14 @@ def api_summary(request):
             "en_taller": en_taller,
             "en_proceso": ordenes_activas,
             "empleados_activos": empleados_activos,
-        }
+        },
     })
 
 
 # ==============================================================
 # 🟦 API: Lista de OTs filtrada (usada por reportes_ot.js)
 # ==============================================================
-@login_required(login_url='/inicio-sesion/')
+@login_required(login_url="/inicio-sesion/")
 @supervisor_only
 def api_ots(request):
     dfrom, dto = _date_range(request)
@@ -114,7 +119,7 @@ def api_ots(request):
 
     qs = (
         OrdenTrabajo.objects.filter(fecha_ingreso__range=(dfrom, dto))
-        .select_related("patente", "taller", "rut", "rut_creador")
+        .select_related("patente", "recinto", "rut", "rut_creador")
     )
 
     if patente:
@@ -125,13 +130,13 @@ def api_ots(request):
 
     if taller:
         if taller.isdigit():
-            qs = qs.filter(taller_id=int(taller))
+            qs = qs.filter(recinto_id=int(taller))
         else:
             ids = list(
-                Taller.objects.filter(nombre__icontains=taller)
-                .values_list("taller_id", flat=True)
+                Recinto.objects.filter(nombre__icontains=taller)
+                .values_list("id", flat=True)
             )
-            qs = qs.filter(taller_id__in=ids or [-1])
+            qs = qs.filter(recinto_id__in=ids or [-1])
 
     if creador:
         qs = qs.filter(rut_creador__rut=creador)
@@ -149,7 +154,7 @@ def api_ots(request):
             "hora": ot.hora_ingreso.strftime("%H:%M") if ot.hora_ingreso else "",
             "patente": ot.patente_id,
             "vehiculo": f"{ot.patente.marca} {ot.patente.modelo}" if ot.patente else "",
-            "taller_nombre": ot.taller.nombre if ot.taller else "",
+            "taller_nombre": str(ot.recinto) if ot.recinto else "",
             "estado": ot.estado,
             "rut_mecanico": getattr(ot.rut, "rut", ""),
             "rut_creador": getattr(ot.rut_creador, "rut", ""),
@@ -162,8 +167,9 @@ def api_ots(request):
 
 # ==============================================================
 # 🔹 API: Resumen Global (dashboard)
+#      → /reportes/api/resumen/
 # ==============================================================
-@login_required(login_url='/inicio-sesion/')
+@login_required(login_url="/inicio-sesion/")
 @supervisor_only
 def api_resumen_global(request):
 
@@ -171,7 +177,7 @@ def api_resumen_global(request):
     en_taller = Vehiculo.objects.filter(estado="En Taller").count()
 
     ordenes_activas = OrdenTrabajo.objects.filter(
-        estado__in=["Pendiente", "En Proceso"]
+        estado__in=["Pendiente", "En Proceso"],
     ).count()
 
     empleados_activos = Empleado.objects.filter(is_active=True).count()
@@ -183,63 +189,79 @@ def api_resumen_global(request):
             "vehiculos_en_taller": en_taller,
             "ordenes_activas": ordenes_activas,
             "empleados_activos": empleados_activos,
-        }
+        },
     })
 
 
 # ==============================================================
 # 🔹 API: Resumen por Taller (dashboard)
+#      → /reportes/api/talleres/
 # ==============================================================
-@login_required(login_url='/inicio-sesion/')
+@login_required(login_url="/inicio-sesion/")
 @supervisor_only
 def api_resumen_talleres(request):
+    """
+    Devuelve, por cada recinto (que en el dashboard mostramos como "taller"):
+      - nombre (string)
+      - cantidad de vehículos distintos con OTs en ese recinto
+      - cantidad de OTs por estado
+    Formato esperado por static/js/reportes.js
+    """
+    talleres_data = []
 
-    talleres = []
+    for r in Recinto.objects.all():
+        qs_ot = OrdenTrabajo.objects.filter(recinto=r)
 
-    for t in Taller.objects.all():
-        vehiculos_total = Vehiculo.objects.filter(ubicacion=t.nombre).count()
+        # Vehículos distintos que han tenido OTs en este recinto
+        vehiculos_total = qs_ot.values("patente_id").distinct().count()
 
-        talleres.append({
-            "taller_id": t.taller_id,
-            "nombre": t.nombre,
-            "ubicacion": t.ubicacion,
+        talleres_data.append({
+            "taller_id": r.pk,
+            "nombre": str(r),  # usamos el __str__ del Recinto
             "vehiculos_total": vehiculos_total,
-            "ots_pendientes": OrdenTrabajo.objects.filter(taller=t, estado="Pendiente").count(),
-            "ots_en_proceso": OrdenTrabajo.objects.filter(taller=t, estado="En Proceso").count(),
-            "ots_finalizadas": OrdenTrabajo.objects.filter(taller=t, estado="Finalizado").count(),
+            "ots_pendientes": qs_ot.filter(estado="Pendiente").count(),
+            "ots_en_proceso": qs_ot.filter(estado="En Proceso").count(),
+            "ots_finalizadas": qs_ot.filter(estado="Finalizado").count(),
         })
 
-    return JsonResponse({"success": True, "items": talleres})
+    return JsonResponse({"success": True, "items": talleres_data})
 
 
 # ==============================================================
 # 🔹 API: Promedio de tiempos (dashboard)
+#      → /reportes/api/tiempos/
 # ==============================================================
-@login_required(login_url='/inicio-sesion/')
+@login_required(login_url="/inicio-sesion/")
 @supervisor_only
 def api_tiempos_promedio(request):
+    """
+    Calcula promedio de duración (en días) de las OTs cerradas,
+    global y por recinto. Formato esperado por static/js/reportes.js.
+    """
 
-    qs = OrdenTrabajo.objects.exclude(fecha_salida__isnull=True)
-
-    qs = qs.annotate(
+    # Solo OTs que tienen fecha_ingreso y fecha_salida
+    qs = OrdenTrabajo.objects.filter(
+        fecha_ingreso__isnull=False,
+        fecha_salida__isnull=False,
+    ).annotate(
         duracion=ExpressionWrapper(
             F("fecha_salida") - F("fecha_ingreso"),
-            output_field=DurationField()
+            output_field=DurationField(),
         )
     )
 
     global_avg = qs.aggregate(promedio=Avg("duracion"))["promedio"]
 
     talleres = {}
-    for t in Taller.objects.all():
-        dur = qs.filter(taller=t).aggregate(promedio=Avg("duracion"))["promedio"]
-        talleres[t.taller_id] = {
-            "taller": t.nombre,
-            "promedio_dias": round(dur.total_seconds() / 86400, 2) if dur else None
+    for r in Recinto.objects.all():
+        dur = qs.filter(recinto=r).aggregate(promedio=Avg("duracion"))["promedio"]
+        talleres[r.pk] = {
+            "taller": str(r),
+            "promedio_dias": round(dur.total_seconds() / 86400, 2) if dur else None,
         }
 
     return JsonResponse({
         "success": True,
         "global_promedio_dias": round(global_avg.total_seconds() / 86400, 2) if global_avg else None,
-        "por_taller": talleres
+        "por_taller": talleres,
     })

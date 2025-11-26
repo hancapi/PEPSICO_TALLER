@@ -38,7 +38,6 @@
     // KPIs
     const k_ots = $('#k_ots');
     const k_inc = $('#k_inc');
-    const k_pres = $('#k_pres');
     const k_llave = $('#k_llave');
 
     // OT actual
@@ -95,7 +94,6 @@
 
         k_ots.textContent = "";
         k_inc.textContent = "";
-        k_pres.textContent = "";
         k_llave.textContent = "";
 
         if (timeline) timeline.innerHTML = "";
@@ -186,9 +184,11 @@
             v_ubicacion.textContent = data.vehiculo.ubicacion;
             v_estado.textContent = data.vehiculo.estado;
 
-            // KPIs
-            k_ots.textContent = data.kpis.ots;
-            k_llave.textContent = data.kpis.llave ?? 0;
+            // KPIs (ya sin préstamos, usando controles de acceso)
+            const k = data.kpis || {};
+            k_ots.textContent   = k.ots ?? 0;
+            k_inc.textContent   = k.incidentes ?? 0;
+            k_llave.textContent = k.llave ?? 0;
 
             // OT actual
             if (data.ot_actual) {

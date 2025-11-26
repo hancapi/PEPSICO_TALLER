@@ -1,205 +1,166 @@
 // static/js/reportes.js
 (function () {
-  const $ = (sel) => document.querySelector(sel);
 
-  // ============================
-  // Helpers fechas
-  // ============================
-  function fmt(d) {
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("📊 Cargando reportes (reportes.js)...");
 
-  function defaultRange() {
-    const to = new Date();
-    const from = new Date();
-    from.setDate(to.getDate() - 7);
-    return { from: fmt(from), to: fmt(to) };
-  }
+    loadKPIs();
+    loadTalleres();
+    loadTiempos();
+  });
 
-  function getRangeOrDefaults() {
-    const inFrom = $("#fromDate");
-    const inTo = $("#toDate");
-    const haveFrom = inFrom && inFrom.value;
-    const haveTo = inTo && inTo.value;
-
-    if (haveFrom && haveTo) {
-      return { from: inFrom.value, to: inTo.value };
-    }
-
-    const def = defaultRange();
-    if (inFrom && !inFrom.value) inFrom.value = def.from;
-    if (inTo && !inTo.value) inTo.value = def.to;
-    return def;
-  }
-
-  // ============================
-  // Filtros de tabla
-  // ============================
-  function getTableFilters() {
-    const patente = ($("#fltPatente")?.value || "").trim().toUpperCase();
-    const estado = ($("#fltEstado")?.value || "").trim();
-    const tallerId = ($("#fltTaller")?.value || "").trim();
-    const creador = ($("#fltCreador")?.value || "").trim();
-    return { patente, estado, taller_id: tallerId, rut_creador: creador };
-  }
-
-  function toQuery(params) {
-    const usp = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && String(v).trim() !== "") {
-        usp.set(k, v);
-      }
-    });
-    return usp.toString();
-  }
-
-  // ============================
-  // Cargar resumen (KPIs)
-  // ============================
-  async function loadSummary() {
-    const { from, to } = getRangeOrDefaults();
-    const url = `/reportes/api/summary/?${toQuery({ from, to })}`;
-
+  // ====================================================
+  // 1) KPIs Globales
+  // ====================================================
+  async function loadKPIs() {
     try {
-      const res = await fetch(url, { credentials: "same-origin" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) return;
-
-      const k = data.kpis || {};
-      $("#statVehiculos") &&
-        ($("#statVehiculos").textContent = k.vehiculos_totales ?? 0);
-      $("#statTaller") &&
-        ($("#statTaller").textContent = k.en_taller ?? 0);
-      $("#statProceso") &&
-        ($("#statProceso").textContent = k.en_proceso ?? 0);
-      $("#statEmpleados") &&
-        ($("#statEmpleados").textContent = k.empleados_activos ?? 0);
-    } catch (e) {
-      console.error("Error loadSummary", e);
-    }
-  }
-
-  // ============================
-  // Cargar tabla de OTs (versión resumida)
-  // ============================
-  async function loadOTs() {
-    const body = $("#tablaOtsBody");
-    if (body) {
-      body.innerHTML =
-        '<tr><td colspan="6" class="text-muted">Cargando…</td></tr>';
-    }
-    $("#tablaCount") && ($("#tablaCount").textContent = "");
-
-    const { from, to } = getRangeOrDefaults();
-    const filters = getTableFilters();
-    const url = `/reportes/api/ots/?${toQuery({ from, to, ...filters })}`;
-
-    try {
-      const res = await fetch(url, { credentials: "same-origin" });
-      const data = await res.json().catch(() => ({}));
+      const res = await fetch("/reportes/api/resumen/", {
+        credentials: "same-origin",
+      });
+      const data = await res.json();
 
       if (!res.ok || !data.success) {
-        if (body) {
-          body.innerHTML = `<tr><td colspan="6" class="text-danger">Error: ${
-            data.message || res.status
-          }</td></tr>`;
-        }
+        console.warn("Error KPIs:", data.message || res.status);
+        return;
+      }
+
+      const d = data.data || {};
+      const elVehTot = document.getElementById("kpi_vehiculos_totales");
+      const elVehTal = document.getElementById("kpi_vehiculos_taller");
+      const elOTAct  = document.getElementById("kpi_ordenes_activas");
+      const elEmp    = document.getElementById("kpi_empleados");
+
+      if (elVehTot) elVehTot.textContent = d.vehiculos_totales ?? "0";
+      if (elVehTal) elVehTal.textContent = d.vehiculos_en_taller ?? "0";
+      if (elOTAct)  elOTAct.textContent  = d.ordenes_activas ?? "0";
+      if (elEmp)    elEmp.textContent    = d.empleados_activos ?? "0";
+
+    } catch (e) {
+      console.error("Error KPIs", e);
+    }
+  }
+
+  // ====================================================
+  // 2) Vehículos + OTs por Taller
+  // ====================================================
+  async function loadTalleres() {
+    try {
+      const res = await fetch("/reportes/api/talleres/", {
+        credentials: "same-origin",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.warn("Error talleres:", data.message || res.status);
         return;
       }
 
       const items = Array.isArray(data.items) ? data.items : [];
-      if (items.length === 0) {
-        if (body) {
-          body.innerHTML =
-            '<tr><td colspan="6" class="text-muted">Sin registros en el rango / filtros.</td></tr>';
-        }
-        return;
+
+      const labels    = items.map((t) => t.nombre);
+      const vehiculos = items.map((t) => t.vehiculos_total);
+      const otsPend   = items.map((t) => t.ots_pendientes);
+      const otsProc   = items.map((t) => t.ots_en_proceso);
+      const otsFin    = items.map((t) => t.ots_finalizadas);
+
+      const ctxVeh = document.getElementById("chartVehiculosTaller");
+      const ctxOTs = document.getElementById("chartOTsTaller");
+
+      if (ctxVeh && window.Chart) {
+        new Chart(ctxVeh, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Vehículos",
+                data: vehiculos,
+                backgroundColor: "#007bff88",
+                borderColor: "#007bff",
+                borderWidth: 1,
+              },
+            ],
+          },
+        });
       }
 
-      if (body) {
-        body.innerHTML = items
-          .map(
-            (row) => `
-          <tr>
-            <td>${row.id}</td>
-            <td>${row.fecha} ${row.hora || ""}</td>
-            <td>${row.patente}</td>
-            <td>${row.taller_nombre}</td>
-            <td>${row.estado}</td>
-            <td>${row.rut_creador || ""}</td>
-          </tr>
-        `
-          )
-          .join("");
+      if (ctxOTs && window.Chart) {
+        new Chart(ctxOTs, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Pendiente",
+                data: otsPend,
+                backgroundColor: "#ffc107aa",
+                borderColor: "#ffc107",
+                borderWidth: 1,
+              },
+              {
+                label: "En Proceso",
+                data: otsProc,
+                backgroundColor: "#17a2b8aa",
+                borderColor: "#17a2b8",
+                borderWidth: 1,
+              },
+              {
+                label: "Finalizado",
+                data: otsFin,
+                backgroundColor: "#28a745aa",
+                borderColor: "#28a745",
+                borderWidth: 1,
+              },
+            ],
+          },
+        });
       }
-
-      $("#tablaCount") &&
-        ($("#tablaCount").textContent = `${items.length} registro(s)`);
     } catch (e) {
-      console.error("Error loadOTs", e);
-      if (body) {
-        body.innerHTML =
-          '<tr><td colspan="6" class="text-danger">Error de red</td></tr>';
-      }
+      console.error("Error talleres", e);
     }
   }
 
-  // ============================
-  // Bind de eventos
-  // ============================
-  function bind() {
-    $("#btnConsultar")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      loadSummary();
-      loadOTs();
-    });
+  // ====================================================
+  // 3) Tiempos Promedio
+  // ====================================================
+  async function loadTiempos() {
+    try {
+      const res = await fetch("/reportes/api/tiempos/", {
+        credentials: "same-origin",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.warn("Error tiempos:", data.message || res.status);
+        return;
+      }
 
-    $("#btnFiltrar")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      loadOTs();
-    });
+      const porTaller = data.por_taller || {};
+      const items = Object.values(porTaller);
 
-    $("#btnLimpiar")?.addEventListener("click", () => {
-      const patente = $("#fltPatente");
-      const estado = $("#fltEstado");
-      const taller = $("#fltTaller");
-      const creador = $("#fltCreador");
+      const labels  = items.map((t) => t.taller);
+      const valores = items.map((t) => t.promedio_dias || 0);
 
-      patente && (patente.value = "");
-      estado && (estado.value = "");
-      taller && (taller.value = "");
-      creador && (creador.value = "");
+      const ctx = document.getElementById("chartTiempos");
+      if (!ctx || !window.Chart) return;
 
-      loadOTs();
-    });
-
-    ["#fltPatente", "#fltTaller", "#fltCreador"].forEach((sel) => {
-      const el = document.querySelector(sel);
-      el &&
-        el.addEventListener("keydown", (ev) => {
-          if (ev.key === "Enter") {
-            ev.preventDefault();
-            loadOTs();
-          }
-        });
-    });
-
-    $("#fltEstado")?.addEventListener("change", () => loadOTs());
-
-    // Rango por defecto con null-check
-    const def = defaultRange();
-    const fromInput = $("#fromDate");
-    const toInput = $("#toDate");
-    if (fromInput && !fromInput.value) fromInput.value = def.from;
-    if (toInput && !toInput.value) toInput.value = def.to;
-
-    // Carga inicial
-    loadSummary();
-    loadOTs();
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Promedio (días)",
+              data: valores,
+              tension: 0.3,
+              borderColor: "#6610f2",
+              backgroundColor: "#6610f244",
+              borderWidth: 2,
+              fill: true,
+            },
+          ],
+        },
+      });
+    } catch (e) {
+      console.error("Error tiempos", e);
+    }
   }
-
-  document.addEventListener("DOMContentLoaded", bind);
 })();

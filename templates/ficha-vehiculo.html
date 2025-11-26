@@ -64,7 +64,11 @@
             <div class="stats-card">
                 <div class="stat-number" id="k_ots"></div>
                 <div class="stat-label">OTs Totales</div>
-            </div> 
+            </div>
+            <div class="stats-card">
+                <div class="stat-number" id="k_inc"></div>
+                <div class="stat-label">Incidentes</div>
+            </div>
             <div class="stats-card">
                 <div class="stat-number" id="k_llave"></div>
                 <div class="stat-label">Llave</div>
@@ -83,9 +87,7 @@
             </div>
         </div>
 
-        <!-- ============================ -->
         <!-- 📎 DOCUMENTOS ASOCIADOS -->
-        <!-- ============================ -->
         <div class="card shadow-sm p-4 mb-4" id="cardDocumentos" style="display:none;">
             <h5 class="fw-bold mb-3">📎 Documentos Asociados</h5>
 
@@ -155,7 +157,6 @@
                             <th>Comentarios / Bitácora</th>
                         </tr>
                     </thead>
-                    <!-- OJO: mantenemos el id="timeline" para que siga funcionando tu JS -->
                     <tbody id="timeline">
                         <!-- Se llena desde ficha_vehiculo.js -->
                     </tbody>
