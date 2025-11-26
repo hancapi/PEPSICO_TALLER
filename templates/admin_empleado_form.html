@@ -24,7 +24,7 @@
   <div class="card">
     <div class="card-body">
 
-      {# Mostrar errores de validación si los hay #}
+      {# Errores de validación #}
       {% if form.errors %}
         <div class="alert alert-danger">
           <strong>Revisa los siguientes errores:</strong>
@@ -59,7 +59,7 @@
             {{ form.nombre }}
           </div>
 
-          <!-- Fila 2: Cargo, Región, Horario -->
+          <!-- Fila 2: Cargo, Región, Horario, Recinto -->
           <div class="col-md-3">
             <label class="form-label" for="{{ form.cargo.id_for_label }}">Cargo</label>
             {{ form.cargo }}
@@ -77,12 +77,19 @@
             {{ form.recinto }}
           </div>
 
-          <!-- Disponible -->
-          <div class="col-12 mt-2">
+          <!-- Checks: Disponible + Admin Web -->
+          <div class="col-12 mt-2 d-flex gap-4">
             <div class="form-check">
               {{ form.disponibilidad }}
               <label class="form-check-label" for="{{ form.disponibilidad.id_for_label }}">
                 Disponible
+              </label>
+            </div>
+
+            <div class="form-check">
+              {{ form.es_admin_web }}
+              <label class="form-check-label" for="{{ form.es_admin_web.id_for_label }}">
+                Administrador Web
               </label>
             </div>
           </div>
